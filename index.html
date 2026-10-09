@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Agent HandBook</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+  <style>
+    .markdown-section { max-width: 960px; }
+    .markdown-section img { max-width: 100%; }
+    .sidebar-nav > ul > li > p { font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div id="app">加载中…</div>
+  <script>
+    window.$docsify = {
+      name: 'AI Agent HandBook',
+      repo: 'https://github.com/aliyun/ai-agent-handbook',
+      loadSidebar: true,
+      // 部分目录没有 README.md，映射到对应的导读页
+      alias: {
+        '/.*/_sidebar.md': '/_sidebar.md',
+        '/04-governance/': '/04-governance/治理篇导读.md',
+        '/05-optimization/': '/05-optimization/调优篇导读.md',
+        '/07-conclusion/': '/07-conclusion/第 30 章 从 Agentic Application 到 Agentic OS.md',
+        '/06-case-study/.+/': '/06-case-study/README.md',
+      },
+      subMaxLevel: 3,
+      relativePath: true,
+      auto2top: true,
+      search: {
+        placeholder: '搜索',
+        noData: '没有结果',
+        depth: 3,
+        paths: 'auto',
+      },
+      pagination: {
+        previousText: '上一章',
+        nextText: '下一章',
+        crossChapter: true,
+      },
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/docsify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify-pagination@2/dist/docsify-pagination.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify-mermaid@2/dist/docsify-mermaid.js"></script>
+  <script>mermaid.initialize({ startOnLoad: false });</script>
+</body>
+</html>
