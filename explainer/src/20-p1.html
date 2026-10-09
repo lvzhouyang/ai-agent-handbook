@@ -1,0 +1,199 @@
+<!-- ================= 架构篇 ================= -->
+<section class="block" id="p1">
+  <div class="part-head"><span class="pn">第一篇</span><h2>架构篇（第 1–2 章）</h2>
+    <div class="q">要回答：这个业务问题该用什么形态解决？给 Agent 多大自主权？责任怎么划分？——先想清楚，再动手。</div></div>
+
+<details class="ch" id="ch1"><summary><span class="no">第 1 章</span><span class="tt">AI 原生应用的新阶段</span><span class="arrow">›</span><span class="one">AI 应用正在从“生成内容”走向“完成任务”。这一章定义什么叫 Agentic Application，以及怎么判断自己该做到哪一级。</span></summary>
+<div class="chb">
+  <div class="tldr"><b>一句话：</b>上一代 AI 应用交付的是“一段回答”，这一代交付的是“一个可验证的任务结果”。编码 Agent 是第一个证明这件事能行的场景。</div>
+
+  <h4>上一代 AI 应用有三个特征</h4>
+  <ol>
+    <li><b>以“请求—回答”为单位。</b>即使加了 <span class="t">RAG</span> 和函数调用，一次调用的边界也很清楚，几秒到几分钟就结束。</li>
+    <li><b>执行路径由代码或 <span class="t">Workflow</span> 事先定好。</b>模型只负责分类、填参数或有限地选工具，不掌握完整的任务循环。</li>
+    <li><b>模型输出的是内容，不是结果。</b>回答流不流畅，人读一下就知道；任务有没有做对，必须检查文件、数据库、测试结果这些“环境事实”。</li>
+  </ol>
+
+  <h4>为什么编码 Agent 是拐点</h4>
+  <p>不只是因为写代码价值高，而是因为它<b>一次性暴露了 Agent 上生产要解决的几乎所有工程问题</b>：</p>
+  <div class="grid3">
+    <div class="mini"><h4>① 信息太多</h4><p>代码仓库比模型窗口大，必须检索、筛选、摘要、外置存储。</p></div>
+    <div class="mini"><h4>② 步骤很多</h4><p>任务跨多次模型调用，必须维护计划、进度和待办。</p></div>
+    <div class="mini"><h4>③ 真的会动手</h4><p>会改文件、跑命令、访问网络，必须有权限、隔离和审批。</p></div>
+    <div class="mini"><h4>④ 会失败</h4><p>中间尝试会出错，需要观测、重试、检查点和恢复。</p></div>
+    <div class="mini"><h4>⑤ 不能自评</h4><p>结果要靠测试、构建、静态检查、Diff 或独立评估器验证。</p></div>
+    <div class="mini"><h4>⑥ 人盯不过来</h4><p>人只能在目标、计划、高风险动作、最终结果这些关键点引导和审批。</p></div>
+  </div>
+  <p>Anthropic 和 OpenAI 的长任务实践都得出同一个结论：<b>长任务不是“把对话拉长”，而是把认知、状态、执行、控制分层，组成能持续运行的系统。</b>这些能力会在别的场景（研究报告、数据分析、IT 运维、客服工单）里反复出现，最终沉淀成通用的 Harness 和 Agent Platform。</p>
+
+  <h4>应用形态不是一条“新的替代旧的”的链</h4>
+  <table>
+    <tr><th>形态</th><th>谁决定执行路径</th><th>人的角色</th><th>适合什么</th></tr>
+    <tr><td>Chat / RAG</td><td>应用事先定好</td><td>提问、阅读、判断</td><td>结果主要是内容，不改外部系统</td></tr>
+    <tr><td>Workflow</td><td>设计时定好，运行时只有局部分支</td><td>设计和审批流程</td><td>任务稳定、路径可穷举、出错代价高</td></tr>
+    <tr><td>Copilot</td><td>人持续决定下一步</td><td>驾驶、验收、负责</td><td>专业判断难以自动化，局部可委托</td></tr>
+    <tr><td><span class="t">Single-Agent</span></td><td>Agent 运行时决定部分或大部分路径</td><td>定目标、约束、审批点，验收</td><td>路径难预知、环境能给反馈、结果可验证、能在有限时间内完成</td></tr>
+    <tr><td><span class="t">Long-Horizon Agent</span> / <span class="t">Multi-Agent</span></td><td>前者按长期反馈调整；后者多个 Agent 编排、移交、评审</td><td>设检查点；或设定角色、权限和协作边界</td><td>单 Agent 受时间跨度或角色复杂度限制，且收益能覆盖新增复杂度</td></tr>
+  </table>
+  <p><b>Workflow 和 Agent 会长期共存。</b>Workflow 确定、好测、好审计；Agent 擅长路径无法穷举的部分。企业流程通常两者都有：资格校验、记账、交易审批适合 Workflow；材料理解、异常调查、方案生成适合 Agent。所以主流形态是两者结合的 <span class="t">Hybrid</span>：在 Workflow 里嵌 Agent，或让 Agent 调用测试过的 Workflow 和 Skill。</p>
+  <p><b>长程和多 Agent 是两个不同方向。</b>长程解决“任务怎么跨时间持续”，多 Agent 解决“多个执行者怎么协作”。单个 Agent 可以跑长任务，多 Agent 也可以只做短任务。两者都不代表“更高级”：长程会带来状态漂移和成本控制难题，多 Agent 会带来通信开销、失败传播和责任不清。</p>
+
+  <h4>定义与六个判定特征</h4>
+  <div class="key">Agentic Application：以 Model 与 Harness 共同构成的执行主体为核心，结合业务逻辑、数据、工具、环境和用户交互，围绕业务目标维护上下文与状态、动态规划步骤、采取行动，并<b>在确定性边界内交付可验证的任务结果</b>。</div>
+  <ol>
+    <li><b>以目标和结果为中心</b>：用户给的是要完成的任务，不是待回答的问题。</li>
+    <li><b>运行时决定部分路径</b>：根据中间结果和环境调整后续行为。</li>
+    <li><b>能对外部环境产生作用</b>：调 API、改文件、跑代码、操作浏览器、委派给别的 Agent。</li>
+    <li><b>维持跨步骤、跨请求的状态</b>：可以暂停、恢复、重试、转交。</li>
+    <li><b>自主行为受确定性机制约束</b>：权限、沙箱、预算、中间件、结构化输出、人工审批，这些是模型自己绕不过去的边界。</li>
+    <li><b>通过可观测与评估持续改进</b>：记录轨迹、工具调用、状态变化、成本和反馈；新版本经过回归、灰度、审批才上线。</li>
+  </ol>
+  <div class="pit">把“Agent 框架”当成 Agent。框架提供 Loop、Tool、Memory 这些开发抽象，但不会自动形成一个能持续执行、接入业务、交付可验证结果的 Agent。上下文组织、状态管理、权限约束、运行保障、结果评估仍要企业自己完成。</div>
+
+  <h4>成熟度分四级——级别越高不代表越好</h4>
+  <table>
+    <tr><th>级别</th><th>典型形态</th><th>典型局限</th><th>升级门槛</th></tr>
+    <tr><td>L1 辅助生成</td><td>Chat、RAG、基础 Copilot</td><td>任务闭环由人完成</td><td>可复用的 Prompt、知识和基础评测</td></tr>
+    <tr><td>L2 受控自动化</td><td>Workflow，局部用 Agent</td><td>对未知路径适应性有限</td><td>明确自主边界，引入 Harness、工具策略、轨迹评估</td></tr>
+    <tr><td>L3 Agentic Execution</td><td>由 Agent 持有任务循环</td><td>容易在成本、权限、失败放大、版本漂移上出问题</td><td>建立 Runtime、Sandbox、可观测、安全、评估</td></tr>
+    <tr><td>L4 规模运营与持续优化</td><td>规模化运行、统一治理、持续优化</td><td>体系复杂，需要平台和组织共同演进</td><td>共享平台、组织知识、标准和自动化</td></tr>
+  </table>
+  <p>低风险知识助手可以一直停在 L1；交易审批可以选 L2 保持核心路径确定；研发、运维、研究、复杂客服这类路径难预知的场景可能进入 L3。<b>产品名字里有 “Agent” 不代表成熟度高</b>，要看任务循环、执行跨度、环境影响和生产治理四个维度。</p>
+
+  <div class="widget" id="w-form">
+    <div class="wt">选一个“最低充分架构”</div>
+    <p style="margin:0;font-size:14px;color:var(--ink2)">回答四个问题，看看书中的决策原则会推荐什么形态。这只是帮助理解原则的简化演示，不是正式的选型工具。</p>
+    <div id="form-qs"></div>
+    <div class="out" id="form-out">请回答上面的问题。</div>
+  </div>
+
+  <h4>动手之前，先回答五个架构问题</h4>
+  <div class="flow">
+    <div class="s"><b>如何设计</b>Workflow、单 Agent 还是 Hybrid？真的需要长程或多 Agent 吗？</div>
+    <div class="s"><b>如何构建</b>哪些交给 Agent 动态决策，哪些固化为 Workflow、规则、Skill？</div>
+    <div class="s"><b>如何运行</b>怎么调度、持久化、隔离、恢复？</div>
+    <div class="s"><b>如何治理</b>谁负责？用什么身份访问什么？哪些操作要审批？</div>
+    <div class="s"><b>如何调优</b>怎么判断质量、定位问题、验证新版本、及时回滚？</div>
+  </div>
+
+  <h4>引入“操作系统”视角</h4>
+  <p>当很多 Agent 在同一批机器上长期并发运行，会出现一个老问题：<b>谁来统一调度、隔离、计量和审计它们？</b>这和当年操作系统要解决的问题一样。但传统操作系统的前提是“程序的执行路径在编写时就确定了”，而 Agent 的路径是运行时由模型决定的，所以每一项管理假设都被改写：</p>
+  <table>
+    <tr><th>管理维度</th><th>传统软件</th><th>Agentic Application</th></tr>
+    <tr><td>执行单元</td><td>进程，路径编写时确定</td><td>任务运行实例（Run），路径运行时决定，可跨进程和副本</td></tr>
+    <tr><td>状态</td><td>随进程内存存活</td><td>外置、持久、可恢复，独立于承载实例</td></tr>
+    <tr><td>授权</td><td>创建时一次性授予</td><td>每次高影响操作按策略判定，且可撤销</td></tr>
+    <tr><td>故障恢复</td><td>以进程为单位，退出即回收</td><td>以任务为单位，需要检查点、幂等和跨系统补偿</td></tr>
+    <tr><td>审计</td><td>系统调用粒度</td><td>意图、工具调用、环境反馈与结果的关联链路</td></tr>
+  </table>
+  <div class="ex">Kubernetes 能重启一个探针失败的容器，但重启容器不等于正确恢复一个“已经对外发出副作用、正在等审批”的任务。云和 K8s 是底座，但缺一层把“容器、配额、IAM”翻译成“Run、预算租约、操作记录”的 Agent 原生抽象。第 30 章把这一层叫做 <span class="t">Agentic OS</span>。</div>
+  <button class="markread" data-ch="1">标记本章已读</button>
+</div></details>
+
+<details class="ch" id="ch2"><summary><span class="no">第 2 章</span><span class="tt">Agentic Application 参考架构</span><span class="arrow">›</span><span class="one">用三个视图看同一套系统，划出五个责任域，给出五条设计原则和五阶段生命周期闭环。这是全书的“总地图”。</span></summary>
+<div class="chb">
+  <div class="tldr"><b>一句话：</b>架构的目的不是把系统做大，而是<b>每授予一份自主性，就配上对等的执行、观测、安全和评估能力</b>。</div>
+
+  <h4>三个视图：从三个角度看同一套系统</h4>
+  <div class="grid3">
+    <div class="mini"><h4>组件视图</h4><p>系统由什么组成？Model、Harness、Context、State、Memory、Tool、Runtime、Sandbox、Gateway……<br><b>防止：能力遗漏</b></p></div>
+    <div class="mini"><h4>平台视图</h4><p>这些组件在哪里运行、由谁负责？执行面、数据与资源面、控制面。<br><b>防止：责任混乱</b></p></div>
+    <div class="mini"><h4>生命周期视图</h4><p>系统怎样从设计走到运行，又怎样被治理和改进？<br><b>防止：把演示当成可运营系统</b></p></div>
+  </div>
+  <p>三个视图不能互相推导：组件齐全不代表责任清晰，责任清晰也不代表变更可控。</p>
+
+  <h4>五个能力责任域</h4>
+  <table>
+    <tr><th>责任域</th><th>负责什么</th></tr>
+    <tr><td>业务与应用层</td><td>用户、业务目标、交互方式、验收条件。回答“系统为什么存在、什么结果能被业务接受”。</td></tr>
+    <tr><td>Agent 构建与编排层</td><td>把 Model、Harness 编排、Context 策略、Memory、Knowledge、Skill、Tool 组合成任务循环。这层只<b>描述和绑定</b>能力，真正的执行在运行层。</td></tr>
+    <tr><td>生产运行层</td><td>调度、状态持久化、工作区、隔离、恢复、流量治理、资源管理。回答“任务能否稳定执行”。</td></tr>
+    <tr><td>治理与控制层</td><td>谁能发布、运行、修改 Agent；能访问哪些资源；版本如何流转；策略如何下发和审计。回答“哪些版本和动作被允许”。</td></tr>
+    <tr><td>调优层</td><td>从 Trace、指标、成本、反馈中定位问题，形成候选变更和验证证据。<b>不直接改生产</b>，变更要回到构建层重新过门禁。</td></tr>
+  </table>
+  <p>安全不是某一层的组件，而是横跨五层的责任。</p>
+
+  <h4>五条企业级设计原则</h4>
+  <ol>
+    <li><b>Model 与 Harness 解耦。</b>模型可替换。模型升级可能让为旧模型设计的补偿性 Prompt 失效，所以两者要一起评估，但不要写死在一起。</li>
+    <li><b>编排层与 Runtime 解耦。</b>编排层定义“怎么想、怎么做”，Runtime 定义“在什么资源和故障条件下持续运行”。两者的接口应当是任务与状态，而不是函数调用细节。</li>
+    <li><b>状态外置，执行实例可替换。</b>会话、计划、待办、工具结果、工作区、记忆、制品都不能只存在模型上下文或某个进程的内存里。</li>
+    <li><b>自主性必须与权限和可验证性匹配。</b>最小权限、短期凭证、网络出站控制、沙箱、结果校验、高风险审批一起构成边界。</li>
+    <li><b>可观测、安全、评估是运行前提，不是上线补丁。</b>不记录轨迹，就无法定位问题、复现评估或证明版本改进。</li>
+  </ol>
+
+  <h4>Harness 编排层的七项核心能力</h4>
+  <table>
+    <tr><th>能力</th><th>缺了它会怎样</th></tr>
+    <tr><td>Agent Loop 与终止条件</td><td>任务不收敛，无限循环或预算失控</td></tr>
+    <tr><td>Instruction 与 Context Engineering</td><td>关键信息被淹没，长上下文中偏离目标</td></tr>
+    <tr><td>Planning 与 Delegation</td><td>复杂任务没有阶段，失败后无法定位与续接</td></tr>
+    <tr><td>Tool 与 Skill 管理</td><td>工具描述挤占上下文，工具错误被当成模型错误</td></tr>
+    <tr><td>Middleware 与 Policy Hook</td><td>策略只能靠提示词，模型可以绕过</td></tr>
+    <tr><td>Compaction 与 Continuation</td><td>上下文耗尽时中断，或压缩改变了任务事实</td></tr>
+    <tr><td>Steering、<span class="t">HITL</span> 与 Verification</td><td>高风险动作没人管，任务“看起来完成”但结果不可信</td></tr>
+  </table>
+  <div class="pit">认为 Harness 越复杂越好。Anthropic 的经验是：模型变强后，为旧模型设计的复杂脚手架反而会限制新模型，需要重新评估甚至简化。LangChain 的经验是：模型不变，只优化编排（Trace 分析、错误聚类、完成前验证、循环检测）也能提升质量。所以编排层本身是一个需要持续评估的对象。</div>
+
+  <h4>五类信息对象：不要用一个上下文装下一切</h4>
+  <table>
+    <tr><th>对象</th><th>回答的问题</th><th>要求</th></tr>
+    <tr><td><span class="t">Context</span></td><td>这一次模型调用该看到什么</td><td>每次调用都重建，<b>不作为事实来源</b></td></tr>
+    <tr><td><span class="t">State</span></td><td>任务已经发生了什么、从哪里恢复</td><td>任务级，强一致、持久化</td></tr>
+    <tr><td><span class="t">Memory</span></td><td>过去哪些经验对现在有用</td><td>跨任务，需要写入门槛、更新、遗忘和隐私治理</td></tr>
+    <tr><td><span class="t">Knowledge</span></td><td>组织已有哪些外部知识可查</td><td>与源系统同步，权限过滤，来源可追溯</td></tr>
+    <tr><td><span class="t">Skill</span></td><td>某类任务应该怎么做</td><td>版本化的能力资产，可发布、复用、回滚</td></tr>
+  </table>
+  <p>Memory 和 Knowledge 要分开：Memory 由 Agent 运行中生成，风险是“错误经验被反复沿用”；Knowledge 来自组织既有内容，风险是“越权和过期”。放进同一个向量库，两种治理能力会同时丢失。</p>
+
+  <h4>一次“受控行动”要经过六个环节</h4>
+  <div class="flow">
+    <div class="s"><b>①</b>能力选择</div><div class="ar">→</div><div class="s"><b>②</b>身份与权限判定</div><div class="ar">→</div><div class="s"><b>③</b>参数校验</div><div class="ar">→</div><div class="s"><b>④</b>隔离环境执行</div><div class="ar">→</div><div class="s"><b>⑤</b>结果校验</div><div class="ar">→</div><div class="s"><b>⑥</b>状态与审计记录</div>
+  </div>
+  <p>能力被发现不等于被授权；参数符合 Schema 不等于意图符合用户目标；命令在沙箱里跑成功不等于结果可以安全影响生产。缺任何一环，模型的“建议”就直接变成了系统的“事实”。</p>
+
+  <h4>三个平面</h4>
+  <table>
+    <tr><th>平面</th><th>负责</th><th>性质</th></tr>
+    <tr><td>执行面</td><td>真正运行 Agent Loop、工具和环境操作</td><td>可弹性、可失败、要隔离，<b>尽量不持有唯一真实状态</b></td></tr>
+    <tr><td>数据与资源面</td><td>保存可恢复的事实，提供可访问的能力</td><td>定义一致性、所有权、保留期、隐私和租户边界</td></tr>
+    <tr><td>控制面</td><td>版本、身份、策略、部署、配额、改进动作</td><td>集中定义、版本化、可审计、可回滚</td></tr>
+  </table>
+  <p>推荐模式是<b>“策略集中定义，判定点分布执行”</b>：控制面管策略，Harness 中间件、Gateway、Runtime、Sandbox 在请求路径上按已下发的策略判定，审计事件异步送回。控制面故障时不至于中断所有任务。代价是策略传播有延迟，所以凭证吊销这类高风险策略需要强制刷新或短期凭证兜底。</p>
+  <p><b>Runtime 与 Sandbox 的边界：</b>Runtime 管任务生命周期（排队、暂停、取消、重试、Checkpoint、恢复），假设任何一步都可能中断；Sandbox 限制行动的影响范围（文件、进程、网络、Secret、资源）。Sandbox 只约束“技术上能碰到什么”，<b>不回答“是否获得授权、是否符合意图、结果是否正确”</b>，这三件事分别由权限判定、业务审批和结果校验负责。</p>
+  <p><b>AI Gateway 的三层：</b>LLM Gateway 以模型调用为粒度（路由、限流、降级、Token 成本）；MCP Gateway 以工具调用为粒度（注册、凭证托管、工具级访问控制、审计）；Agent Gateway 以任务为粒度（路由、会话连续性、租户配额、预算）。可以是同一个网关，但治理对象必须分开。</p>
+
+  <h4>四种部署形态</h4>
+  <table>
+    <tr><th>形态</th><th>适合</th><th>代价</th></tr>
+    <tr><td>应用内嵌 SDK，直连模型与工具</td><td>原型、低风险、单应用</td><td>状态、密钥、观测、策略分散到各应用</td></tr>
+    <tr><td>托管 Harness 与 Runtime</td><td>想快速上生产，数据边界允许</td><td>厂商绑定，合规要逐项确认</td></tr>
+    <tr><td>托管控制面 + 私有执行面</td><td>共享管理能力，数据和工具留在域内</td><td>连通、版本兼容、跨域审计更复杂</td></tr>
+    <tr><td>全自托管或混合云平台</td><td>高合规、大规模、深度定制</td><td>建设和运营成本最高</td></tr>
+  </table>
+  <p>原则：平台提供<b>安全且可运营的默认路径</b>，应用保留对模型、编排和业务能力的组合选择权。平台想封装所有差异，会退化成“最低公约数”，业务会绕开它；平台只给算力，又解决不了真正的共性问题。</p>
+
+  <h4>生命周期：最小发布单元是 Agent Release</h4>
+  <p>Agent 的行为不只由代码决定，还由模型、Prompt、Context、Memory、Knowledge、Skill、Tool、编排逻辑、预算、环境共同决定。所以<b>最小发布单元</b>是一个可复现的 <span class="t">Agent Release</span>，至少绑定六类要素：</p>
+  <div class="grid3">
+    <div class="mini"><p>① 模型版本、参数、推理预算、路由策略</p></div>
+    <div class="mini"><p>② Harness 代码、配置、循环控制、中间件、终止条件</p></div>
+    <div class="mini"><p>③ Prompt、Context Policy、Memory Policy、Skill、Knowledge 版本</p></div>
+    <div class="mini"><p>④ Tool、MCP、Agent 能力清单，权限策略，凭证范围</p></div>
+    <div class="mini"><p>⑤ Runtime、Sandbox、资源、网络、数据保留配置</p></div>
+    <div class="mini"><p>⑥ 评估数据集、评估器、基线、准入阈值、已知风险</p></div>
+  </div>
+  <div class="ex">如果 Prompt 可以在生产里随时修改而不留版本，那么任何评估结论都只对“当时那一刻”成立。</div>
+  <table>
+    <tr><th>阶段</th><th>核心问题</th><th>主要产物</th><th>准入/反馈</th></tr>
+    <tr><td>架构设计</td><td>用什么形态、多大自主性、什么边界</td><td>形态选择、责任域、权限与数据边界、评估口径</td><td>架构评审、威胁建模、影响半径评估</td></tr>
+    <tr><td>构建</td><td>把决策实现为可复现的 Release</td><td>Agent 定义、编排、Prompt、Skill、评估基线</td><td>离线评估、安全检查、发布门禁</td></tr>
+    <tr><td>运行</td><td>可靠、隔离、可恢复地执行</td><td>Task、Event、Checkpoint、Artifact、Trace、Cost</td><td>状态机、Sandbox、Gateway、失败恢复</td></tr>
+    <tr><td>治理</td><td>看见、约束、审批、追责</td><td>Policy、Approval、Audit、Alert、SLO</td><td>最小权限、在线检查、人类监督</td></tr>
+    <tr><td>调优</td><td>复现问题、生成改进、安全发布</td><td>Dataset、Evaluator、Experiment、各类补丁</td><td>回归、对比实验、红队、仿真、灰度、回滚</td></tr>
+  </table>
+  <div class="key">架构设计是生命周期的<b>第一阶段</b>，不能隐含在构建里。形态、自主性、权限边界一旦定下，后面所有阶段的成本区间就被锁定了。当风险来自形态选择或权限模型本身时，正确做法是<b>重新设计架构</b>，而不是继续叠补丁。</div>
+  <p><b>治理既是一个阶段，也是横切约束：</b>权限模型在设计阶段确定，审批点在构建阶段实现，策略在运行阶段执行，风险在治理阶段检测，变更在调优阶段验证。自检标准：如果一项治理要求只能上线后靠流程和人工补齐，规模化以后它大概率会失效。</p>
+  <button class="markread" data-ch="2">标记本章已读</button>
+</div></details>
+</section>

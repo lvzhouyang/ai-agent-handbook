@@ -1,0 +1,273 @@
+<!-- ================= 调优篇 ================= -->
+<section class="block" id="p5">
+  <div class="part-head"><span class="pn">第五篇</span><h2>调优篇（第 17–24 章）</h2>
+    <div class="q">要回答：怎样把运行和治理积累的证据，转化为实实在在的能力提升？先判断问题出在哪一层，再选对方法。</div></div>
+  <div class="card">
+    <p style="margin-top:0"><b>两条主线 + 一个专题，进入哪条由“归因”决定：</b></p>
+    <div class="grid3">
+      <div class="mini"><h4>模型调优（第 17 章）</h4><p>问题真的在模型权重里：SFT、Agentic RL、蒸馏。</p></div>
+      <div class="mini"><h4>智能体调优（第 18–23 章）</h4><p>问题在 Agent 怎样被组织、被供给信息、被约束执行：数据飞轮。</p></div>
+      <div class="mini"><h4>边缘优化（第 24 章）</h4><p>面向全球用户时的网络、缓存、安全前置。按需阅读。</p></div>
+    </div>
+    <p style="margin-bottom:0">书中的提醒：<b>把本应由上下文、工具协议或运行控制解决的问题当成“模型不行”，往往是代价最高的一类误判。</b></p>
+  </div>
+
+<details class="ch" id="ch17"><summary><span class="no">第 17 章</span><span class="tt">模型调优</span><span class="arrow">›</span><span class="one">什么时候才该改模型？改的话选 SFT、Agentic RL 还是蒸馏？怎样在完整 Agent 中验证收益？</span></summary>
+<div class="chb">
+  <div class="tldr"><b>一句话：</b>先排除环境故障，再检查 Harness 是否给了充分信息和可靠控制，<b>最后</b>才判断是不是模型能力缺口。只有信息、动作接口、反馈都清楚，同类错误仍跨任务反复出现，才值得训练模型。</div>
+  <div class="widget" id="w-attr">
+    <div class="wt">失败归因：问题出在哪一层？</div>
+    <p style="margin:0;font-size:14px;color:var(--ink2)">按书中的排查顺序走一遍。场景：数据分析 Agent 反复生成错误的 SQL。</p>
+    <div class="out" id="attr-out"></div>
+  </div>
+  <table>
+    <tr><th>归因对象</th><th>常见情况</th><th>怎么验证</th></tr>
+    <tr><td>执行环境</td><td>模型已给出可执行动作，但服务、沙箱、资源无法正常执行</td><td>绕过模型直接调用工具，故障仍能复现</td></tr>
+    <tr><td>Harness</td><td>模型没拿到必要信息、清晰接口或完整反馈；状态、重试、权限没被可靠管理</td><td>固定模型和环境，修正上下文或协议，问题明显减少</td></tr>
+    <tr><td>模型</td><td>信息、接口、反馈都充分，环境也正常，模型仍持续判断错误</td><td>固定 Harness 和环境，错误跨任务稳定出现，或换模型后显著改善</td></tr>
+  </table>
+  <p>边界不清时做<b>四组对照</b>：原模型+原 Harness、原模型+新 Harness、新模型+原 Harness、新模型+新 Harness。</p>
+  <h4>模型要具备的四类能力</h4>
+  <div class="grid2">
+    <div class="mini"><h4>任务理解与约束识别</h4><p>把自然语言要求转成可执行目标；信息不够时提出澄清也是有效推进。</p></div>
+    <div class="mini"><h4>工具使用与反馈理解</h4><p>调用成功只说明接口完成了请求，还要判断结果是否完整、口径是否一致。</p></div>
+    <div class="mini"><h4>多步决策与状态利用</h4><p>理解已完成和未解决的工作，按反馈调整顺序。</p></div>
+    <div class="mini"><h4>失败恢复与合理终止</h4><p>报错后决定修参数、补信息、换路径还是求助；满足条件后知道停。</p></div>
+  </div>
+  <h4>目标：质量、可靠性、成本，外加安全护栏</h4>
+  <p><b>单位成功任务成本</b> = 统计期内全部任务的执行成本 ÷ 成功完成的任务数（失败任务的消耗也计入分子）。比较时要固定任务构成并同时报告成功率，避免因为放弃困难任务造成表面上的成本下降。训练不必然降本：只有减少了提示长度、重试和复核，或让更小的模型胜任，才可能省钱；低频或变化快的任务，轻量调整 Harness 往往更经济。</p>
+  <h4>三种方法怎么选</h4>
+  <table>
+    <tr><th>方法</th><th>什么时候用</th><th>关键前提</th></tr>
+    <tr><td><span class="t">SFT</span>（监督微调）</td><td>正确行为能被明确示范，但模型执行不稳定</td><td>示范可靠；样本只能用决策时刻已可见的信息</td></tr>
+    <tr><td><span class="t">Agentic RL</span></td><td>有多条可行路径，优劣要实际执行才能判断</td><td>环境可运行可重置；<b>结果可验证</b>比过程可标注更重要</td></tr>
+    <tr><td><span class="t">模型蒸馏</span></td><td>教师模型已能完成，想迁移到更小更便宜的学生模型</td><td>教师在目标任务上稳定；学生容量够；核算含兜底的总成本</td></tr>
+  </table>
+  <ul>
+    <li><b>SFT 的样本：</b>不只监督最终答案，还监督“要不要调工具、调哪个、参数怎么填、何时澄清或终止”。纠错场景可以把错误动作留在上下文里，但<b>屏蔽它的训练损失</b>，只监督后面经验证的修正行为。训练损失下降不证明能完成任务，要在固定 Harness 下让模型自主运行验收。</li>
+    <li><b>RL 的奖励陷阱：</b>如果退款验证器只检查“是否生成了退款记录”，不检查政策、金额和权限，模型就可能学会更快地创建不合规退款。</li>
+    <li><b>蒸馏的分工：</b>先建“任务—职责—风险”矩阵，分成学生独立执行、学生执行教师校验、教师直接执行三类。技能级迁移（只迁移工具路由、参数抽取等一个环节）更容易定义成功和故障边界，适合作为首次落地切入点。</li>
+  </ul>
+  <div class="key">验收与上线：在完整 Agent 中、相同 Harness 和预算下比较；设准入门禁（任务收益、行为约束、能力回归）；灰度替换、可回滚。若候选模型需要专门的提示或协议适配，要把适配一起记录，不能把组合变化全部归功于模型。</div>
+  <button class="markread" data-ch="17">标记本章已读</button>
+</div></details>
+
+<details class="ch" id="ch18"><summary><span class="no">第 18 章</span><span class="tt">Agent 调优总览：数据飞轮</span><span class="arrow">›</span><span class="one">Agent 上线后要持续回答两个问题：任务有没有做好？做好花了多少代价？数据飞轮把每次运行的事实变成可复用的改进。</span></summary>
+<div class="chb">
+  <div class="tldr"><b>一句话：</b>把真实运行留下的事实，整理成<b>可复用的样本、可检查的标准、可验证的改动</b>，再把有效改动带回运行环境。</div>
+  <h4>传统应用 vs Agent，测试关注点不同</h4>
+  <table>
+    <tr><th>关注点</th><th>传统确定性逻辑</th><th>Agent 新增的要求</th></tr>
+    <tr><td>执行路径</td><td>检查代码规定的分支</td><td>检查模型为什么选这条路径</td></tr>
+    <tr><td>正确性</td><td>验证接口契约</td><td>同时验证目标达成、业务约束、交付结果</td></tr>
+    <tr><td>故障定位</td><td>找代码或依赖的异常</td><td>区分理解、上下文、工具使用、恢复策略的问题</td></tr>
+    <tr><td>变更验证</td><td>检查功能和历史场景</td><td>还要看重复执行是否稳定，质量、成本、延迟怎样变化</td></tr>
+  </table>
+  <div class="ex">公开基准提醒我们：<b>会做、做完、稳定交付是不同层次</b>。书中引用：OSWorld 2.0 长流程任务上，某顶级模型严格完成率 20.6%，部分得分 54.8%——完成许多中间步骤不等于交付了完整结果；τ-bench 零售任务上，GPT-4o 单次通过率 61.2%，但同一任务连续 8 次全部成功的比例低于 25%——一次做对之后，还要检查重复执行的可靠性。这些都是特定测试条件下的结果，不能直接换算成企业业务成功率。</div>
+  <h4>飞轮的两条反馈路径</h4>
+  <div class="grid2">
+    <div class="mini"><h4>改进“判断方法”</h4><p>例：客服的“有哪些功能”和“如何配置评估”需要不同标准。最初共用一个评估器，实验后发现不合适，于是给数据集加题目级 Rubric。</p></div>
+    <div class="mini"><h4>改进“Agent 行为”</h4><p>缺配置步骤 → 补 Skill；工具用错 → 改工具描述；超时后反复提交 → 检查重试和结果核实逻辑。改动先作为候选，经过实验和回归再决定是否采用。</p></div>
+  </div>
+  <p>数据有两种作用：<b>帮助判断该改哪里，也帮助否决没效果或会退化的修改</b>。样本增加、经验入库、候选生成都只是过程产物。</p>
+  <div class="card" style="padding:12px">
+    <svg viewBox="0 0 760 210" style="width:100%" aria-label="数据飞轮">
+      <style>.fw rect{fill:#fff;stroke:#c9c3b4;rx:10}.fw text{font-size:13px;fill:#1d1f24;font-family:var(--font)}.fw .a{stroke:#c2410c;stroke-width:2;fill:none;stroke-dasharray:6 5;animation:dash 1.2s linear infinite}@keyframes dash{to{stroke-dashoffset:-22}}</style>
+      <g class="fw">
+        <rect x="10" y="20" width="120" height="50"/><text x="70" y="42" text-anchor="middle">真实运行</text><text x="70" y="60" text-anchor="middle" style="font-size:11px;fill:#7b818c">Trace</text>
+        <rect x="160" y="20" width="120" height="50"/><text x="220" y="42" text-anchor="middle">轨迹组织</text><text x="220" y="60" text-anchor="middle" style="font-size:11px;fill:#7b818c">第 19 章</text>
+        <rect x="310" y="20" width="120" height="50"/><text x="370" y="42" text-anchor="middle">Pipeline 加工</text><text x="370" y="60" text-anchor="middle" style="font-size:11px;fill:#7b818c">第 20 章</text>
+        <rect x="460" y="20" width="120" height="50"/><text x="520" y="42" text-anchor="middle">黄金数据集</text><text x="520" y="60" text-anchor="middle" style="font-size:11px;fill:#7b818c">第 21 章</text>
+        <rect x="610" y="20" width="140" height="50"/><text x="680" y="42" text-anchor="middle">评估找 Badcase</text><text x="680" y="60" text-anchor="middle" style="font-size:11px;fill:#7b818c">第 22 章</text>
+        <rect x="610" y="140" width="140" height="50"/><text x="680" y="162" text-anchor="middle">实验对比候选</text><text x="680" y="180" text-anchor="middle" style="font-size:11px;fill:#7b818c">第 22 章</text>
+        <rect x="370" y="140" width="190" height="50"/><text x="465" y="162" text-anchor="middle">Skill / 经验 / Harness 改进</text><text x="465" y="180" text-anchor="middle" style="font-size:11px;fill:#7b818c">第 23 章</text>
+        <rect x="110" y="140" width="190" height="50"/><text x="205" y="162" text-anchor="middle">走发布流程，确认生效</text><text x="205" y="180" text-anchor="middle" style="font-size:11px;fill:#7b818c">接入交付流程</text>
+        <path class="a" d="M130 45H160M280 45H310M430 45H460M580 45H610M680 70V140M610 165H560M370 165H300M110 165H70V70"/>
+      </g>
+    </svg>
+  </div>
+  <h4>第一轮怎么做（以“产品客服遗漏操作步骤”为例）</h4>
+  <ol>
+    <li><b>找到真实问题：</b>在轨迹里搜索操作咨询，打开用户仍在追问的任务。</li>
+    <li><b>持续收集：</b>少量直接加入数据集；需要日常质检就建 Pipeline。</li>
+    <li><b>写成题库：</b>业务人员确认参考答案，每题写 Rubric（“如何做评估”应包含准备数据、选评估器、配置映射、查看结果）。</li>
+    <li><b>先知道哪里没做好：</b>建评估器，先在已知题上试评，确认它能指出遗漏。</li>
+    <li><b>两个版本都做题：</b>补一个操作 Skill，旧版新版跑同一份黄金集，看目标题是否改善、正常题是否保持、成本是否可接受。</li>
+    <li><b>采用有效方案，继续接收反馈。</b></li>
+  </ol>
+  <p>这一轮留下的不只是一个改过的 Prompt，还有可复用的题库、评分要求、改动前后的结果和持续收集问题的管线。</p>
+  <button class="markread" data-ch="18">标记本章已读</button>
+</div></details>
+
+<details class="ch" id="ch19"><summary><span class="no">第 19 章</span><span class="tt">Agent 轨迹数据</span><span class="arrow">›</span><span class="one">用户说“没解决问题”时，轨迹把输入、行动、工具反馈和输出放在一起，帮你分清是没理解、没找到材料，还是没用对材料。</span></summary>
+<div class="chb">
+  <div class="tldr"><b>一句话：</b>先看懂一条真实执行，确认问题，再把同类数据交给 Pipeline。<b>先区分“数据没采集到”和“Agent 没执行对”</b>，不要用反复发请求代替定位。</div>
+  <h4>三个对象</h4>
+  <table>
+    <tr><th>对象</th><th>组织什么</th><th>怎么用</th></tr>
+    <tr><td>Trace</td><td>由追踪上下文关联的一组调用</td><td>定位某次执行和调用问题</td></tr>
+    <tr><td>Session</td><td>一段连续交互，可能包含多条 Trace</td><td>看用户补充和上下文；同一会话里可能有多个任务</td></tr>
+    <tr><td><span class="t">Trajectory</span></td><td>整理后的用户与 Agent 步骤、工具交换、结果和指标</td><td>阅读行为过程、加工样本</td></tr>
+  </table>
+  <p>SessionID 帮你找相关交互，但<b>不会自动证明它们属于同一个任务</b>，不能凭时间接近或文字相似认定。</p>
+  <h4>按问题选检索方式</h4>
+  <table>
+    <tr><th>想调查</th><th>怎么开始找</th></tr>
+    <tr><td>某次用户投诉</td><td>时间范围 + TraceID，或输入里的关键字</td></tr>
+    <tr><td>用户多次补充仍未解决</td><td>SessionID</td></tr>
+    <tr><td>某工具相关任务表现差</td><td>应用 + 工具名 + 时间范围</td></tr>
+    <tr><td>哪些任务明显变慢</td><td>按耗时筛选，比较步骤数和 Token</td></tr>
+    <tr><td>同一意图是否反复出现</td><td>对输入做语义搜索（相似度只用于选候选，不是质量分）</td></tr>
+  </table>
+  <h4>读一条轨迹：先看目标与结果，再展开关键步骤</h4>
+  <div class="ex">用户问“如何做评估”。先找到知识检索动作：检索词是否针对评估流程？返回内容是否包含操作说明？后续回答是否用了这些内容？<b>如果检索结果已有完整步骤，Agent 却只输出概念介绍，改进方向与“知识库根本没有材料”完全不同。</b></div>
+  <ul>
+    <li><b>工具失败：</b>先看 Agent 怎样处理失败。收到错误却告诉用户成功 → 改错误处理和回复策略；返回内容没表达清楚失败 → 同时查工具接口。修正参数后成功说明能恢复；多次原样重试同一错误，要调整重试或停止条件。</li>
+    <li><b>耗时或 Token 偏高：</b>找“多出来的工作”——反复检索同一材料？工具返回大量无关内容？不要只因总 Token 高就删步骤，复杂任务需要更多探索。</li>
+    <li><b>业务质检：</b>回答与执行事实是否一致。Agent 回答“完成”只是一条输出，工具接收请求、执行结束、业务目标达成都不是同一件事。</li>
+  </ul>
+  <p>值得保留的记录加入数据集作为<b>候选样本</b>，业务人员确认问题成立、补充期望行为后，再决定哪些进入黄金集。同时保留几条正常例，避免下次修改只改善了投诉样本却损害常规回答。</p>
+  <button class="markread" data-ch="19">标记本章已读</button>
+</div></details>
+
+<details class="ch" id="ch20"><summary><span class="no">第 20 章</span><span class="tt">Agent 运行时数据处理（Pipeline）</span><span class="arrow">›</span><span class="one">把整理数据的方法保存成任务，持续把运行记录变成质检人员和评估器能直接用的表格。</span></summary>
+<div class="chb">
+  <div class="tldr"><b>一句话：</b>Pipeline 是数据生产层。先交付一批有人愿意用的数据，再逐步加标签、采样、周期任务。<b>管线简单而输出被持续使用，比配置了很多处理却无人消费更有价值。</b></div>
+  <h4>能帮业务做什么</h4>
+  <table>
+    <tr><th>业务需要</th><th>处理</th></tr>
+    <tr><td>把日志变成可读表格</td><td>字段投影、字段扩展、条件过滤</td></tr>
+    <tr><td>把分散事件整理为完整样本</td><td>实例构建（按任务或会话组装）</td></tr>
+    <tr><td>整理不重复的题库</td><td>精确、近似、语义去重</td></tr>
+    <tr><td>预算有限时多看几类问题</td><td>随机采样、分组采样、语义聚类</td></tr>
+    <tr><td>补充业务标签</td><td>LLM 调用、智能体调用（分类、摘要、提取）</td></tr>
+    <tr><td>持续收集新数据</td><td>单次执行、周期执行</td></tr>
+  </table>
+  <p><b>先决定“一行代表什么”。</b>退款质检可以从“一次任务一行”开始；分析用户为何反复补充信息需要连续多轮；比较多个并行 Agent 要分别保留各条路径。这决定了后面怎么分组、采样、评分。</p>
+  <h4>退款质检示例</h4>
+  <ol>
+    <li>选“轨迹数据”来源和推荐方案，提取 input（用户问题）、output（最终答复）、agent_trajectory（完整轨迹）、来源 ID。</li>
+    <li><b>用预览确认这张表好不好用：</b>找一条工具报错的任务，看它有没有被保留。例如工具返回“缺少退款原因”，最终答复却是“退款已经提交”——这正是要交给质检的样本。如果只留最后一句话，之后很难判断为什么不对。</li>
+    <li>先单次执行一个明确时间段，检查输出数据集。</li>
+    <li>人工一天能看 100 条，就加采样模块；没有业务标签，就加 LLM 调用让模型先分类（“申请退款 / 查询进度 / 退款被拒 / 其他”），结果供筛选和人工复核，正式评分交给可校准的评估器。</li>
+    <li>稳定后改成周期执行，持续写入日常数据集。</li>
+  </ol>
+  <div class="pit">把 LLM 合成的数据和真实用户数据混在一起不做区分。用模型做数据增强可以补充表达和边界条件，但生成结果先放候选区，人工确认后再用，并保留合成来源。</div>
+  <button class="markread" data-ch="20">标记本章已读</button>
+</div></details>
+
+<details class="ch" id="ch21"><summary><span class="no">第 21 章</span><span class="tt">Agent 黄金数据集</span><span class="arrow">›</span><span class="one">把问题和判断标准保存下来，形成一套可以反复使用的业务题库。改 Prompt、补 Skill、换模型时，都拿同一批题检验。</span></summary>
+<div class="chb">
+  <div class="tldr"><b>一句话：</b><span class="t">黄金数据集</span>是一组经过业务确认的任务，既有题目，也有判断是否完成的依据。“黄金”指的是<b>题目与标准可信</b>——Agent 曾经答错的题，补齐正确要求后同样是黄金样本，往往比漂亮的成功回答更有价值。</div>
+  <h4>它有什么用</h4>
+  <div class="grid3">
+    <div class="mini"><h4>统一标准</h4><p>运营、研发、测试对“什么算回答好”有共同依据。</p></div>
+    <div class="mini"><h4>选型</h4><p>候选方案做同一批题，按自己的业务选，不只看通用榜单。</p></div>
+    <div class="mini"><h4>验证修改</h4><p>看清修复了什么，是否影响其他能力。</p></div>
+    <div class="mini"><h4>防止老问题重现</h4><p>投诉和故障变成长期回归检查项。</p></div>
+    <div class="mini"><h4>校准评估器</h4><p>用人工确认过的样本检查机器评分是否靠谱。</p></div>
+  </div>
+  <h4>起步字段</h4>
+  <table>
+    <tr><th>字段</th><th>填什么</th></tr>
+    <tr><td>input</td><td>用户原始问题，必要时补充前提</td></tr>
+    <tr><td>actual_output</td><td>原 Agent 怎么答的</td></tr>
+    <tr><td>expected_output</td><td>业务认可的答案或应达到的结果</td></tr>
+    <tr><td><span class="t">rubric</span></td><td>必须覆盖什么、怎样判分、哪些错误不可接受</td></tr>
+    <tr><td>scenario / source_ref</td><td>场景分类 / 对应轨迹或文档版本</td></tr>
+  </table>
+  <div class="ex">“如何做评估”这道题的 Rubric 示例：按四项检查，每项满足得 0.25 分——①说明如何准备并选择评估数据；②说明如何选择或创建评估器；③说明输入、输出与轨迹的字段映射；④说明如何运行评估、查看解释并处理低分样本。若编造产品能力或操作入口，另外标记为不通过。<br>参考答案给一个合格示例，Rubric 说明必须做到什么，允许 Agent 用不同措辞作答。开放任务不宜要求逐字一致。</div>
+  <h4>题怎么选</h4>
+  <table>
+    <tr><th>应保留</th><th>为什么</th></tr>
+    <tr><td>高频问题</td><td>影响大量用户的日常体验</td></tr>
+    <tr><td>已发生过的问题</td><td>检查修复是否持续有效</td></tr>
+    <tr><td>业务边界与高风险要求</td><td>防止少量但代价大的错误</td></tr>
+    <tr><td><b>原本表现正常的题</b></td><td>发现改动带来的退化</td></tr>
+    <tr><td>表述变化与多轮问题</td><td>检查是否只适配一种问法</td></tr>
+  </table>
+  <p>建设流程：先建候选集 → 手工确认几条典型题、统一标准分歧 → 再让 AI 批量预标注 → 人工复核 → 选入黄金集 → 创建版本留档。证据暂缺或有争议的样本继续留在候选集。</p>
+  <div class="key"><b>参与改写 Prompt、生成 Skill、提炼经验的题，要和最后独立检查效果的题分开。</b>一旦反复看某些题并据此修改 Agent，它们就已经参与了调优，应另留新的验证题。</div>
+  <button class="markread" data-ch="21">标记本章已读</button>
+</div></details>
+
+<details class="ch" id="ch22"><summary><span class="no">第 22 章</span><span class="tt">Agent 优化：Badcase</span><span class="arrow">›</span><span class="one">让评估持续发现问题，再用同一批题验证修改是否有效。评估检查已发生的执行，实验让修改后的 Agent 重新作答。</span></summary>
+<div class="chb">
+  <div class="tldr"><b>一句话：</b>不要看到低分就立即改 Prompt。先确认问题成立，再<b>一次只改最有依据的一项</b>，用同一批题比较基线和候选，<b>先看退化题，再看改善题</b>。</div>
+  <h4>做一个能用的评估器</h4>
+  <table>
+    <tr><th>要判断的问题</th><th>评估方式</th></tr>
+    <tr><td>JSON 格式对不对、必填字段在不在</td><td>Code 规则</td></tr>
+    <tr><td>回答是否切题、是否遗漏信息</td><td>LLM 评估（给齐参考材料和评分细则）</td></tr>
+    <tr><td>多步任务是否完成、工具结果与回复是否一致</td><td>Agent 评估（结合轨迹）</td></tr>
+  </table>
+  <p>一个任务可以用多个评估器，把“回答质量”和“业务操作是否完成”分开评，能直接看出哪项下降。不能把多个评估器的结果简单平均，就默认代表业务质量。</p>
+  <p><b>先在几条已知样本上试评</b>：至少一条已知好回答、一条已知坏回答、一条信息不完整的。检查：扣分依据真的出现在回答里吗？引用的是正确的工具结果吗？缺证据时会不会说无法判断？采样“最多 100 条”限制的是候选量，不保证能找到 100 条 Badcase。</p>
+  <h4>从结果里挑出值得修的 <span class="t">Badcase</span></h4>
+  <table>
+    <tr><th>读到的现象</th><th>本轮应采取的动作</th></tr>
+    <tr><td>回答讲了概念，缺少运行和结果分析步骤</td><td>确认为完整性问题，纳入调优样本</td></tr>
+    <tr><td>回答已有关键步骤，评估解释却说没有</td><td><b>修评估器或字段映射</b>，重评受影响样本</td></tr>
+    <tr><td>Agent 声称完成，轨迹显示工具失败</td><td>保留为执行问题，交给负责该行为的团队</td></tr>
+    <tr><td>执行异常或材料缺失</td><td>先补齐执行条件或材料，再判断 Agent 质量</td></tr>
+  </table>
+  <p>评估器误判的样本也很有价值，留作校准材料。高分样本也要抽检，避免只看低分而漏掉评估器没识别出的严重问题。</p>
+  <h4>实验：评估的是本次新生成的回答</h4>
+  <p>实验和历史评估的关键区别：被评分的必须是<b>本次生成的新回答和新轨迹</b>，参考答案和 Rubric 从数据集对应题目读取。企业内网的 Agent 可以在本地执行题目，再把结果回传（注意有会话状态的 Agent 要按“创建会话 → 发问题 → 取最终响应”适配，独立样本用独立会话；先跑通一道题，再跑一批）。</p>
+  <div class="key">决定采用候选时，除了平均分至少再看三件事：<b>严重错误是否消失、原来正常的场景是否退化、耗时与消耗是否可接受</b>。总分提高但关键条款仍未通过，不适合升级；输出变长本身不代表改善；省略必要步骤得到的低耗时也不能作为升级理由。小批通过后，扩大到回归集，再验证一批没参与本轮修改的独立样本。</div>
+  <button class="markread" data-ch="22">标记本章已读</button>
+</div></details>
+
+<details class="ch" id="ch23"><summary><span class="no">第 23 章</span><span class="tt">受控自进化</span><span class="arrow">›</span><span class="one">让走通过的方法被稳定采用，让反复出现的问题逐渐减少：经验库、Skill、SQL/脚本、Workflow、Harness 改进，以及自动化程度怎样逐步提高。</span></summary>
+<div class="chb">
+  <div class="tldr"><b>一句话：</b>“自进化”不是 Agent 自由修改自己，而是<b>系统产生候选改进 → 实验验证 → 按规则采用 → 异常时可恢复</b>。业务目标与验收要求始终是起点。</div>
+  <h4>先选方向</h4>
+  <table>
+    <tr><th>业务现象</th><th>先尝试</th></tr>
+    <tr><td>相似故障总要重新探索，方法只在特定条件下适用</td><td>建经验库，任务开始或遇到相关问题时召回</td></tr>
+    <tr><td>经常漏掉前置检查、测试或结果确认</td><td>补充或修改 Skill</td></tr>
+    <tr><td>反复编写相近的统计查询或清洗脚本</td><td>整理 SQL 模板、Script 或工具</td></tr>
+    <tr><td>固定流程总要人工盯着推进</td><td>把稳定步骤接入 Workflow</td></tr>
+    <tr><td>重复提交、恢复后状态不明、长任务忘记约束</td><td>修改 Harness（执行与上下文管理机制）</td></tr>
+  </table>
+  <h4>经验库：保存“遇到什么情况，可以怎样处理”</h4>
+  <p>“先找首次异常，再分析连续重试”比某次故障的最终答案更有复用价值。检查每条经验：解决什么问题、建议什么动作、什么条件下适用，并回到来源 Trace 确认动作真的发生过。</p>
+  <div class="ex">某条经验建议“查询不到日志时扩大时间窗口”。要追问：当时是窗口太短，还是数据根本没采集？前一种可以复用；后一种应先处理接入。经验的来源和不适用条件，防止把一次现场处置变成所有任务的固定要求。</div>
+  <p>接入后要<b>亲自验证一次召回</b>：Agent 口头说“参考了历史经验”不算，要对应真实的调用记录和后续动作。召回策略（阈值、返回数量、触发时机、放置位置、使用要求）通过实验决定，召回本身的开销也要计入成本。</p>
+  <h4>稳定的方法变成资产</h4>
+  <p>SQL 模板保留去重计数逻辑、参数化现场值；Script 封装分页、解析、汇总；Skill 说明何时用、先确认什么口径；Workflow 把“确认范围—执行统计—核对明细—生成报告”接成固定步骤。<b>不必一次交齐四种</b>：最大开销是重复生成查询，就先交 SQL 模板；问题是漏验收，就先修 Skill。文件生成后，还要从新任务发起完整请求，确认 Agent 能找到并正确使用它。</p>
+  <h4>用失败样本推动 Skill 和 Harness 改进</h4>
+  <div class="ex">表格 Agent 向不存在的工作表写入，失败后才查工作表列表；另一次因公式括号不完整失败。由此提出三个具体修改：写入前确认目标工作表、提交前检查公式、完成后回读目标单元格。每条修改都能对应执行证据，而不是把 Skill 重写成更长的通用注意事项。</div>
+  <p>“提交已发生，但会话恢复后再次提交”属于 Harness 问题：要区分“尚未开始 / 已开始但结果未知 / 已完成”，结果未知时先核对业务状态。验收时要用能真正触发原问题的任务（比如在提交后、结果保存前中断）。</p>
+  <h4>自动化程度逐步提高</h4>
+  <div class="flow">
+    <div class="s"><b>手动调优</b>专家挑问题、看轨迹、改一处</div><div class="ar">→</div>
+    <div class="s"><b>半自动</b>系统整理失败模式、生成候选；人比较、安排实验、决定采用</div><div class="ar">→</div>
+    <div class="s"><b>受控自动</b>已规定范围的变更自动检查和实验，满足条件后采用，异常交给负责人</div>
+  </div>
+  <div class="key">每次采用前确认四件事：<b>目标问题是否改善、原有任务是否退化、额外代价是否可接受、目标 Agent 是否实际使用了被验证的内容</b>。注意：暂停经验挖掘不会阻止旧经验继续影响任务，出了问题要调整召回或采用设置。</div>
+  <button class="markread" data-ch="23">标记本章已读</button>
+</div></details>
+
+<details class="ch" id="ch24"><summary><span class="no">第 24 章</span><span class="tt">Agent 边缘运行时与全球优化</span><span class="arrow">›</span><span class="one">用户遍布全球时，网络传输、重复推理、攻击和内容适配成为 Region 之外的新优化维度。（专题，可按需阅读）</span></summary>
+<div class="chb">
+  <div class="tldr"><b>一句话：</b>把 Region 内成熟的调优体系延伸到离用户最近的边缘。核心洞察：<b>不是所有 Agent 请求都需要回到数据中心处理</b>。（书中以阿里云 ESA 为基础设施示例，文中性能数字多为示例假设，需企业基线校准。）</div>
+  <h4>四个边缘优化方向</h4>
+  <div class="grid2">
+    <div class="mini"><h4>延迟不对称</h4><p>端到端延迟的七个因素里，只有网络传输由物理距离决定。跨洋用户的网络传输可能占 TTFT 很大比例，推理再快也补不回来。</p></div>
+    <div class="mini"><h4>成本不透明</h4><p>Token、回源带宽、边缘请求分散在不同计费体系里，需要统一计量和缓存优化。</p></div>
+    <div class="mini"><h4>安全前置</h4><p>DDoS 在边缘清洗，Bot 在边缘拦截，直接注入在到达 Region 前初筛（间接注入等深层攻击仍需 Region 结合完整上下文检测）。</p></div>
+    <div class="mini"><h4>内容适配</h4><p>在边缘把 HTML 转成 Markdown 等 Agent 友好形态，减少二次处理的延迟和 Token。</p></div>
+  </div>
+  <h4>三阶段演进（同样遵循最低充分原则）</h4>
+  <table>
+    <tr><th>阶段</th><th>做什么</th><th>什么信号说明需要</th></tr>
+    <tr><td>一：边缘基础设施增强 Agent</td><td>就近接入、智能路由、DDoS/WAF/Bot 防护，业务代码基本不变</td><td>全球用户抱怨延迟，但 Region 内指标正常</td></tr>
+    <tr><td>二：Agent 能力部署到边缘</td><td>边缘语义缓存、模型路由、Token 计量、内容转换、轻量推理</td><td>Token 成本随用户线性增长，没有缓存效果</td></tr>
+    <tr><td>三：Agent 原生部署在边缘</td><td>两级运行时：边缘函数处理鉴权、路由、缓存、安全过滤；Region 函数处理多轮上下文、工具编排、推理、记忆</td><td>要为每个区域独立部署整套系统，运维成本不可控</td></tr>
+  </table>
+  <div class="pit">什么都往语义缓存里放。语义缓存只适合<b>公开、幂等、低风险</b>的请求。个性化强、权限敏感、时效高的内容不应进缓存，否则可能误命中错误答案；涉及写操作和权威状态的请求必须回到 Region 执行。</div>
+  <p><b>不适用的场景：</b>用户集中在单一区域；严格的数据驻留要求；高正确性风险的回答；需要复杂推理和大上下文的任务；流量规模小或缓存命中率低时，边缘层的额外成本可能超过收益——此时“不优化”才是正确选择。</p>
+  <button class="markread" data-ch="24">标记本章已读</button>
+</div></details>
+</section>

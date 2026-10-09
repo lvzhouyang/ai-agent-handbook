@@ -1,0 +1,255 @@
+<!-- ================= 构建篇 ================= -->
+<section class="block" id="p2">
+  <div class="part-head"><span class="pn">第二篇</span><h2>构建篇（第 3–6 章）</h2>
+    <div class="q">要回答：Harness 由谁来实现？怎样把模型的“一次次判断”组织成能持续推进、能中断恢复、能验证结束的任务过程？</div></div>
+  <div class="card">
+    <p style="margin-top:0"><b>本篇结构：</b>第 3 章讲“从哪里开始搭”，第 4–6 章把 Harness 拆成三类工程契约，三者有先后顺序：</p>
+    <div class="flow">
+      <div class="s"><b>任务（第 4 章）</b>怎么推进、怎么恢复、怎么判定完成</div><div class="ar">→</div>
+      <div class="s"><b>信息（第 5 章）</b>每一步模型应该看见什么</div><div class="ar">→</div>
+      <div class="s"><b>行动（第 6 章）</b>意图怎么被授权、执行、验证</div>
+    </div>
+    <p style="margin-bottom:0"><b>贯穿案例：</b>“生产服务漏洞修复与变更发布 Agent”。收到支付服务高危依赖漏洞后，它要定位受影响代码，制定升级方案，把依赖分析、代码修改、独立评审分给不同执行者，在隔离环境里改代码、跑测试，生成变更单；涉及发布时等待责任人审批；最后用代码差异、测试报告、安全扫描和发布状态证明完成。</p>
+  </div>
+
+<details class="ch" id="ch3"><summary><span class="no">第 3 章</span><span class="tt">范式：Harness 的主流构建方式和责任边界</span><span class="arrow">›</span><span class="one">Harness 是什么、不是什么；企业有四种起点来搭建它，以及为什么最终都需要一个 Agent Platform。</span></summary>
+<div class="chb">
+  <div class="tldr"><b>一句话：</b>选构建路径，本质上是决定 <b>Harness 的哪些部分由企业自己写、哪些复用现成产品、哪些交给托管平台</b>。无论怎么选，权限、验收和最终业务责任都不会消失。</div>
+  <h4>Harness 的定义和三个“不是”</h4>
+  <div class="key">Harness：模型之外，围绕 Agent Loop 组织上下文、能力、状态、环境与控制机制，把模型判断转化为可执行、可恢复、可验证任务过程的代码、配置和执行逻辑。</div>
+  <ul>
+    <li><b>不是一个更长的 System Prompt。</b>Prompt 只是它某一轮生成的输入之一。它还包括状态机、工具注册、计划管理、权限检查、错误恢复、完成验证等确定性逻辑。</li>
+    <li><b>不是某个 Agent 框架的同义词。</b>框架可以帮你实现 Harness；成熟的编码 Agent CLI/SDK 自带一套现成的 Harness；托管服务可以连执行一起托管。</li>
+    <li><b>不是 Runtime 或 Sandbox。</b>Harness 决定下一步做什么；Runtime 负责持续承载这个过程；Sandbox 把实际行动限制在可控环境中。</li>
+  </ul>
+  <table>
+    <tr><th>层次</th><th>核心问题</th></tr>
+    <tr><td>Model</td><td>Agent 能理解和推理到什么程度</td></tr>
+    <tr><td>Harness 编排</td><td>Agent 如何工作（Loop、Context、State、Plan、Tool、Skill、Subagent、Permission、Verification）</td></tr>
+    <tr><td>Runtime</td><td>Agent 如何持续运行（调度、并发、等待、故障恢复）</td></tr>
+    <tr><td>Sandbox / Environment</td><td>在哪里行动、影响范围多大</td></tr>
+    <tr><td>Agent Platform</td><td>如何规模化交付和治理</td></tr>
+  </table>
+  <h4>搭 Harness 要实现哪些对象</h4>
+  <div class="grid3">
+    <div class="mini"><h4>Agent Contract</h4><p>为谁工作、目标、允许和禁止什么、成功标准</p></div>
+    <div class="mini"><h4>Execution</h4><p>Loop、状态机、预算、Verifier</p></div>
+    <div class="mini"><h4>Context &amp; State</h4><p>每轮看见什么，任务事实存在哪</p></div>
+    <div class="mini"><h4>Capability</h4><p>Tool、MCP、Skill、Subagent</p></div>
+    <div class="mini"><h4>Environment</h4><p>文件、命令、浏览器在哪里运行</p></div>
+    <div class="mini"><h4>Control</h4><p>以谁的身份行动，哪些要拒绝或审批</p></div>
+    <div class="mini"><h4>Interaction</h4><p>用户怎么看进度、干预、恢复</p></div>
+    <div class="mini"><h4>Quality</h4><p>怎么证明完成，新版本是否更好</p></div>
+  </div>
+  <p><b>第一步不是选框架，而是固定任务契约（Agent Contract）。</b>同一个“修复漏洞”目标，可以只出分析报告，也可以改代码跑测试，还可以创建合并请求。除非契约明确授予发布权限，否则任何 Agent 都不应该把“修复完成”解释为“已经发布到生产”。</p>
+  <h4>四类构建入口（不是成熟度阶梯，也不互斥）</h4>
+  <table>
+    <tr><th>入口</th><th>书中示例</th><th>企业直接控制</th><th>企业仍要负责</th><th>适合</th></tr>
+    <tr><td>高代码框架自建 Harness</td><td>AgentScope、LangChain</td><td>Loop、Context、规划、状态语义、工具策略、验证逻辑</td><td>组合后的行为、执行基础、安全、恢复、评估</td><td>业务独特、需深度定制、数据必须自控</td></tr>
+    <tr><td>复用产品化 Harness</td><td>Qoder CLI/SDK、QwenPaw</td><td>业务目标、工具扩展、权限回调、工作区</td><td>多租户接入、业务 Task、隔离、凭证、Outcome</td><td>想复用成熟工作方式并嵌入现有产品</td></tr>
+    <tr><td>基于模型构建（托管 Agent）</td><td>Qoder Cloud Agents、Claude Managed Agent</td><td>Agent 定义、Environment、企业能力接入、验收</td><td>身份映射、业务状态、审批、数据边界</td><td>在线服务、异步任务、快速生产化</td></tr>
+    <tr><td>云产品快速构建</td><td>阿里云 AgentCore</td><td>业务目标、Agent 配置、共享资源组合</td><td>业务 Task、数据与权限边界、效果评估</td><td>想从创建开始就进入统一的资源和治理体系</td></tr>
+  </table>
+  <div class="ex">托管 Agent 用 Agent、Environment、Session、Event 四个对象组织任务。事件流里的 <code>session.status_idle</code> 只表示“当前回合结束”，不表示任务成功。任务是否成功，要结合交付物和验收标准判断。</div>
+  <div class="pit">把一个 CLI 进程直接当成多租户在线服务。企业需要在外围补齐身份、任务队列、共享状态、隔离环境和业务验收。共享 Session Store 能让会话在另一台机器上继续，但它只存会话记录，不存认证状态、文件 Checkpoint 或业务 Outcome；Worker 失效后不能因为 Session 能读到，就直接重放最后一次工具调用。</div>
+  <h4>Agent Platform：多团队、多 Agent 时的共同底座</h4>
+  <p>多个团队各自搭模型接入、工具目录、凭证、会话、沙箱、观测、评估，会重复投入，还会形成 Agent、数据和权限孤岛。Agent Platform 负责统一创建、接入、交付、运行、治理、协作、观测和优化。它<b>统一公共对象（身份、版本、任务、质量事实），但不抹平各家 Harness 的实现差异</b>，也不替业务定义任务目的和正确性。</p>
+  <p>平台统一管理多源 Agent 至少要满足三个条件：版本与归属可追溯；Event、Artifact、Trace 关联到 Task、身份和租户；远程 Agent 不能只返回一段自然语言结论，还要提供可验收的产物或环境事实。</p>
+  <div class="key">无论选哪条路径，都要分清三对概念：<b>Task 与 Session</b>（目标 vs 交互）、<b>Event 与 Trace</b>（发生了什么 vs 因果链）、<b>Artifact 与 Outcome</b>（产物 vs 业务是否达成）。</div>
+  <button class="markread" data-ch="3">标记本章已读</button>
+</div></details>
+
+<details class="ch" id="ch4"><summary><span class="no">第 4 章</span><span class="tt">任务：编排、长程推进与协作流转</span><span class="arrow">›</span><span class="one">Agent Loop 怎么推进任务，状态机怎么让等待和失败变得明确，计划和委派怎么受控，以及什么才算“真正完成”。</span></summary>
+<div class="chb">
+  <div class="tldr"><b>一句话：</b>Harness 把模型的离散判断组织成<b>有状态、可控制、可恢复</b>的任务过程。模型只能“申请完成”，Harness 依据证据“提交完成”。</div>
+  <h4>Agent Loop：五个阶段</h4>
+  <div class="widget" id="w-loop">
+    <div class="wt">单步走一遍漏洞修复任务</div>
+    <div class="loop" id="loop-ph">
+      <div class="ph">Prepare<small>读状态、组上下文</small></div>
+      <div class="ph">Model<small>决定下一步</small></div>
+      <div class="ph">Act<small>经 Action Plane 执行</small></div>
+      <div class="ph">Observe<small>结果变成观察</small></div>
+      <div class="ph">Verify<small>验收器检查</small></div>
+    </div>
+    <div class="btns"><button class="btn" id="loop-prev">上一步</button><button class="btn on" id="loop-next">下一步</button><button class="btn" id="loop-reset">重来</button></div>
+    <div class="out" id="loop-out"></div>
+  </div>
+  <h4>用权威状态驱动任务</h4>
+  <p>消息历史只是记录，不能当作任务状态的唯一来源。Harness 要维护一份机器可读的权威状态：目标、阶段、计划与待办、已确认事实、阻塞项、子任务、产物、剩余预算、等待原因、完成依据。点一下各个状态看它的含义：</p>
+  <div class="sm" id="sm"></div>
+  <div class="out" id="sm-out">点击上面的状态。</div>
+  <div class="key"><code>WAITING</code> 不是失败，<code>PAUSED</code> 也不是结束。只有把它们显式化，Runtime 才能在等待期间释放资源；界面才能说清 Agent 在等什么；观测系统才能区分“执行慢、审批慢、工具慢”。</div>
+  <p><b>Loop 必须有外部终止边界：</b>步骤数、总时长、Token 与费用、工具调用次数、子任务并发数、高风险动作次数都要进预算。预算快用完时，让模型收敛范围、停止新委派、优先交付已完成部分；预算耗尽时，给出明确的终态和未完成清单，而不是悄悄截断。</p>
+  <h4>计划：把任务结构变成外部可控的对象</h4>
+  <table>
+    <tr><th>模式</th><th>形式</th><th>适合</th></tr>
+    <tr><td>轻量 Todo</td><td>简短有序的待办列表</td><td>目标明确、步骤少、反馈快</td></tr>
+    <tr><td>Plan Mode</td><td>只读探索 → 写计划 → 人工确认 → 执行</td><td>影响面大、需要审阅、环境不清楚</td></tr>
+    <tr><td>Planner–Executor</td><td>Planner 维护阶段和依赖，Executor 逐项执行</td><td>长任务、多依赖、可并行</td></tr>
+  </table>
+  <p>计划必须允许修订，但每次重规划要说明触发它的事实，并保留已完成项，<b>不能用改写目标来掩盖失败</b>。长任务要设<b>阶段门禁</b>：</p>
+  <div class="flow">
+    <div class="s"><b>影响分析</b>门禁：影响范围可追溯</div><div class="ar">→</div>
+    <div class="s"><b>修复规划</b>门禁：计划获批，才放开写权限</div><div class="ar">→</div>
+    <div class="s"><b>变更实施</b>门禁：只改授权工作区</div><div class="ar">→</div>
+    <div class="s"><b>独立验证</b>门禁：强制检查全部通过</div><div class="ar">→</div>
+    <div class="s"><b>发布准备</b>门禁：责任人审批</div>
+  </div>
+  <div class="ex">Prompt 可以要求模型“先规划再修改”，但只有<b>权限模式 + 工具白名单 + 持久状态 + 人工确认</b>同时生效，系统才真正做到“计划获批前不可写”。这就是 Prompt 约束和 Harness 约束的区别。</div>
+  <h4>Subagent：委派什么时候值得</h4>
+  <p>Subagent 的价值只有三个：<b>上下文隔离</b>（子任务只加载相关内容）、<b>能力隔离</b>（不同模型、工具、权限）、<b>并行执行</b>。任务很短、步骤高度依赖时，委派反而增加通信和合并成本。</p>
+  <p>每个子任务都要带一份机器可读的委派契约：目标与边界、已知上下文、能力与权限、预算、输出与证据、失败语义、验收条件。</p>
+  <table>
+    <tr><th></th><th>Delegation（委派）</th><th>Handoff（移交）</th></tr>
+    <tr><td>责任</td><td>父任务保留责任，结果回来后父 Agent 整合和验收</td><td>控制权转移，接收者成为当前责任人</td></tr>
+  </table>
+  <p>子 Agent <b>默认不继承</b>父任务的全部上下文和权限。子任务失败要有策略：关键分析失败就 <code>FAIL_FAST</code>，非关键探索 <code>BEST_EFFORT</code>，瞬时故障 <code>RETRY_OR_REASSIGN</code>，需要业务决定时 <code>ESCALATE</code>。子 Agent 的产物只是新的 Observation，要经过校验和父任务验收才能进入权威状态。</p>
+  <h4>异步与长程续行</h4>
+  <p>任务身份要和当前连接分离：提交后拿到稳定的 <code>task_id</code>，可以断开再回来。暂停前停止创建新行动、保存最新状态；恢复时重新检查目标、外部条件、工具是否实际执行过、权限是否还有效、工作区是否变化。取消要沿父子任务传播，但<b>已经发生的外部副作用不会消失</b>，必要时要补偿。</p>
+  <h4>保持核心 Loop 稳定：中间件 + 契约测试</h4>
+  <p>每加一个能力就往 Loop 里加一堆 if，长期会让状态迁移不可预测。更好的结构是“稳定内核 + 可插拔能力”：中间件在明确的生命周期点读取上下文，返回放行、修改、短路等结构化决定，由内核统一提交。执行内核至少要有四类确定性测试：状态迁移、扩展顺序、恢复（任意安全点中断后不重复副作用）、预算与边界。</p>
+  <h4>可靠性：按失败类型恢复</h4>
+  <p>“Agent 失败了”不是一个可执行的诊断。瞬时错误适合有界退避；参数错误要修正；环境缺失要重建；权限拒绝要等待或终止；重复探索要重新规划。</p>
+  <div class="pit">发布、通知、写库这类操作超时后直接重试。超时可能只是响应丢了，操作其实已经成功。重试前必须先回答“上一次到底有没有发生”：生成幂等键、记录请求和结果、优先查询状态；无法证明没执行时，不应重复。</div>
+  <p><b>无进展检测</b>比单纯的最大步数更早发现问题：连续调用相同工具且参数相似、反复同一错误、计划长期不变、工作区没有新事实。</p>
+  <h4>完成由证据决定</h4>
+  <table>
+    <tr><th>验证层级</th><th>方式</th><th>适合</th></tr>
+    <tr><td>结构验证</td><td>Schema、必填字段、文件存在</td><td>低风险结构化产物</td></tr>
+    <tr><td>环境验证</td><td>查询真实系统、检查 Diff 和执行结果</td><td>工具和工作区任务</td></tr>
+    <tr><td>确定性验证</td><td>测试、规则、静态检查、业务校验</td><td>可编码的成功条件</td></tr>
+    <tr><td>独立模型验证</td><td>用独立上下文检查质量和遗漏</td><td>开放式分析</td></tr>
+    <tr><td>人工验收</td><td>责任人审阅、签署</td><td>高影响、主观或合规任务</td></tr>
+  </table>
+  <div class="ex">漏洞修复“完成”需要同时成立：① 依赖清单证明受影响版本已替换，且没通过传递依赖重新引入；② 代码差异只在授权目录，与批准的计划一致；③ 单测、集成测试、安全扫描都有报告且通过；④ 独立评审没有未关闭的阻断问题；⑤ 变更单包含影响范围、回滚方案和证据引用；⑥ 如果目标只到“形成可审批变更”，就不能把“尚未发布”判为未完成。<br>换到别的场景，变化的是验收器，不变的是原则：<b>模型申请完成，Harness 依据事实提交完成</b>。</div>
+  <button class="markread" data-ch="4">标记本章已读</button>
+</div></details>
+
+<details class="ch" id="ch5"><summary><span class="no">第 5 章</span><span class="tt">信息：上下文、状态与可复用能力资产</span><span class="arrow">›</span><span class="one">模型窗口有限，任务世界不断增长。这一章讲怎样决定“模型此刻该看见什么”，以及记忆、知识、技能怎样被正确保存和使用。</span></summary>
+<div class="chb">
+  <div class="tldr"><b>一句话：</b>Context 不是“喂更多文本”，而是每轮都重新“编译”出一份当前该看的内容；<b>任何关键事实都必须先写进权威状态，才能从上下文里移走</b>。</div>
+  <h4>System Context 是“编译”出来的</h4>
+  <p>每轮模型实际收到的系统上下文，要根据 Agent 版本、任务阶段、用户身份、工作区规则、剩余预算、可用工具、选中的 Skill 动态生成。多个来源按优先级合并：平台策略不能被项目文档覆盖；用户最新要求能改方向，但不能突破安全边界；记忆里的历史偏好不能替代当前事实；工具返回的外部内容不能升级为系统指令。</p>
+  <p><b>Context Builder 的顺序：</b>先做身份和权限过滤，再做相关性排序。不能为了排序方便，先把跨租户内容交给检索器或模型。排序要综合七个因素：约束强度、任务相关性、时间有效性、来源可信度、执行依赖、信息增量、Token 成本。</p>
+  <p><b><span class="t">Context Manifest</span>：</b>每次模型调用都记录“模型究竟看到了什么”——来源、作用域、版本、可信等级、为何有权读取、为何被选中、占多少 Token、做了什么变换、内容摘要。它能回答三个问题：开发时，模型为什么漏掉了某条信息；评估时，两个版本的上下文有什么差异；审计时，某条敏感内容为什么进入了模型输入。</p>
+  <h4>上下文压缩不是普通摘要</h4>
+  <p>压缩要支持下一轮继续执行，至少保留：原始目标与成功标准、已确认事实及来源（区分事实、假设、建议）、已做决定及原因、已执行行动和副作用、当前计划与阻塞、产物和外部对象 ID、用户偏好与审批结果、失败尝试及原因。</p>
+  <div class="flow">
+    <div class="s"><b>Commit</b>结构化事实先提交到状态</div><div class="ar">→</div>
+    <div class="s"><b>Compact</b>可叙述历史压成摘要，带来源</div><div class="ar">→</div>
+    <div class="s"><b>Rebuild</b>用摘要+状态+最近消息重建上下文</div><div class="ar">→</div>
+    <div class="s"><b>Validate</b>检查目标、未决项、权限模式、关键证据还在</div>
+  </div>
+  <p><b>大结果卸载：</b>一次日志查询可能返回几万行。原始结果写入工作区，上下文只留摘要、关键片段和稳定引用，需要时再分页读取。省下的不只是一次输入，而是之后每一轮都不再重复携带它。</p>
+  <p>衡量压缩质量不能只看省了多少 Token，还要看事实保留率、继续成功率、矛盾率、引用可用率、成本收益。</p>
+  <h4>Call、Session、Task 是三件事</h4>
+  <table>
+    <tr><th>对象</th><th>是什么</th><th>生命周期</th></tr>
+    <tr><td>Call</td><td>一次请求或恢复动作</td><td>秒到分钟</td></tr>
+    <tr><td><span class="t">Session</span></td><td>用户与 Agent 的连续交互边界</td><td>分钟到数天</td></tr>
+    <tr><td><span class="t">Task</span></td><td>围绕一个可验收目标持续存在的执行对象</td><td>可跨 Call、Session、进程和节点</td></tr>
+  </table>
+  <p>一个 Session 可以发起多个 Task；一个长 Task 可以在多个 Session 中被查看和恢复。<b>把 Task ID 绑定成消息线程 ID，会限制后台执行、多人协作和跨渠道续接。</b></p>
+  <p>状态有三种互补表示：<span class="t">Event Log</span> 记录发生过什么；Snapshot 记录某时刻的聚合状态；<span class="t">Checkpoint</span> 是可以<b>安全恢复</b>的位置（还要包含续行信息、幂等和环境依赖）。三者不能互相替代。</p>
+  <p><b><span class="t">Workspace</span></b> 是模型窗口之外的“外部工作记忆”：输入、草稿、状态文件、产物、证据分开存放，各有不同的保留和权限策略。模型写出文件不等于产物完成，进入“就绪”前要通过测试或验收。</p>
+  <h4>四类 Memory</h4>
+  <table>
+    <tr><th>类型</th><th>内容</th><th>怎么进上下文</th></tr>
+    <tr><td>Working</td><td>当前任务的临时事实、未决项</td><td>直接来自 Task State 或 Workspace</td></tr>
+    <tr><td>Episodic</td><td>过去任务的经验片段（要带当时条件和结果）</td><td>按相似性和结果质量检索</td></tr>
+    <tr><td>Semantic</td><td>稳定事实、偏好、实体关系</td><td>按实体、主题、权限检索</td></tr>
+    <tr><td>Procedural</td><td>已验证的方法和步骤</td><td>稳定后最好升级为 Skill</td></tr>
+  </table>
+  <div class="pit">“每次任务结束都自动总结写入记忆”。这很容易造成污染。写入前要问：未来有没有价值？是验证过的事实还是模型推测？属于哪个用户、项目、租户？有没有敏感信息？该新增、合并还是标记冲突？错了谁来纠正，派生索引怎么清理？</div>
+  <div class="widget" id="w-route">
+    <div class="wt">这条信息应该放在哪里？</div>
+    <p style="margin:0;font-size:14px;color:var(--ink2)">漏洞修复任务中出现了下面几条信息。给每条选一个去向（答案来自书中表格）。</p>
+    <div id="route-qs"></div>
+  </div>
+  <h4>Skill 与渐进式披露</h4>
+  <p><b>Tool 告诉 Agent “能做什么动作”，Skill 告诉 Agent “在某类任务中怎样正确使用若干动作”。</b>Skill 由说明、脚本、模板、示例、检查清单组成。它本身不带额外权限。</p>
+  <div class="flow">
+    <div class="s"><b>发现层</b>只看名称、简介、适用条件、风险</div><div class="ar">→</div>
+    <div class="s"><b>选择层</b>按任务、权限、环境解析候选，加载清单</div><div class="ar">→</div>
+    <div class="s"><b>执行层</b>真正需要时才读详细指令和脚本</div>
+  </div>
+  <p>稳定、重复、可编码、出错代价高的步骤写成脚本或工具；需要理解模糊目标、比较方案、解释异常的部分留给模型。<b>一次任务成功不等于已经成为可复用能力</b>：要从 Trace 中提取稳定步骤，去掉一次性内容，补测试，再版本化发布。生产 Trace 必须能定位到具体 Skill 版本，<code>latest</code> 指针只适合开发。</p>
+  <h4>多租户资产治理</h4>
+  <p>资产按作用域隔离：Global、Tenant、Project、User、Session、Task。<b>先确定调用身份和作用域，再检索。</b>不要先跨作用域召回、再“提醒模型不要泄露”——内容一旦进入模型输入，隔离已经失败。</p>
+  <p>三类污染：<b>记忆污染</b>（错误推测被当成经验）、<b>指令污染</b>（外部文字被提升为行为规则）、<b>跨租户污染</b>（索引、缓存、摘要把 A 的信息带给 B）。真正的删除要清理原文、索引、缓存、摘要、派生关系，并触发受影响 Agent 版本的重新验证。降低检索分数不等于删除。</p>
+  <button class="markread" data-ch="5">标记本章已读</button>
+</div></details>
+
+<details class="ch" id="ch6"><summary><span class="no">第 6 章</span><span class="tt">行动：受控执行、验证反馈与交付准备</span><span class="arrow">›</span><span class="one">模型输出的工具调用只是“意图”。这一章讲意图如何被授权、执行、观察，人如何介入，以及失败如何变成下一版 Harness 的改进。</span></summary>
+<div class="chb">
+  <div class="tldr"><b>一句话：</b>把不同来源的行动请求统一成一条受控链路：<b>Schema 校验 → 身份 → 策略 → 审批 → 隔离执行 → 观察 → 记录</b>。再用 Trace 和评估把真实失败转化为有针对性的修复。</div>
+  <h4>三个必须区分的事实</h4>
+  <div class="grid3">
+    <div class="mini"><h4>模型看见了工具</h4><p>工具描述进了当前上下文。</p></div>
+    <div class="mini"><h4>Harness 注册了工具</h4><p>系统知道怎么调用和解析它。</p></div>
+    <div class="mini"><h4>本次行动获得授权</h4><p>当前用户和任务被允许执行这一次具体操作。</p></div>
+  </div>
+  <p>如果“出现在 Tool Schema 里”就等于“可以调用”，那么最小权限、用户委派、只读阶段都无从谈起。</p>
+  <p><b>统一的 Action Request：</b>不管模型是通过函数调用、Shell、浏览器还是远程 Agent 发起行动，都先转成统一格式。模型写的自由文本只能当“目的说明”的参考，能力名称、参数类型、影响范围、身份必须由确定性代码解析和校验。Action 有自己的生命周期：请求 → 校验 → 授权/等待审批 → 运行 → 成功/失败/取消。一个工具失败不一定让整个任务失败。</p>
+  <div class="ex">“创建变更单”和“发布生产”不能包装成一个模糊工具。它们的身份、风险、可逆性、审批要求完全不同。<code>change.create</code> 可以自动执行；<code>production.deploy</code> 风险高，策略返回 ASK，进入等待审批。即使最终调用同一个平台，也要分别授权、审计、重试和验证。</div>
+  <h4>Function Calling、MCP、A2A 各管一层</h4>
+  <table>
+    <tr><th></th><th>是什么</th><th>用在哪</th></tr>
+    <tr><td><span class="t">Function Calling</span></td><td>模型用结构化格式表达“想调哪个能力、传什么参数”</td><td>模型 ↔ Harness 的意图接口</td></tr>
+    <tr><td><span class="t">MCP</span></td><td>标准化地发现和连接工具、资源等外部能力</td><td>Harness ↔ 能力提供方的连接协议</td></tr>
+    <tr><td><span class="t">A2A</span></td><td>和有独立任务循环、状态的远程 Agent 交换任务、消息、状态、产物</td><td>Agent ↔ Agent</td></tr>
+  </table>
+  <p>协议不会替你完成授权、租户隔离、业务验证。选择规则：短时、参数明确、立即返回 → Tool；需要跨应用复用工具 → MCP；对方有自己的任务循环、需要异步状态和产物 → A2A。<b>按能力的性质选协议，不按协议新不新、火不火选。</b></p>
+  <h4>面向 Agent 的好工具</h4>
+  <ul>
+    <li>名称和描述说清业务目的、适用条件、<b>不适用的情况</b>。</li>
+    <li>输入用明确类型、枚举、边界和示例，不让模型拼接任意请求。</li>
+    <li>输出区分结构化结果、给模型看的摘要、原始证据引用。</li>
+    <li>标明是否只读、有无副作用、是否可逆、是否支持预览和幂等。</li>
+    <li>错误分类稳定：能否重试、要改参数还是转人工。</li>
+    <li>认证和 Secret 留在执行侧，不放进描述或上下文。</li>
+  </ul>
+  <p>粒度太粗，一次调用影响太大，审批和验证不精确；太细，模型要编排一堆低级步骤。合理粒度是<b>“一个可描述、可授权、可观察、可验证的业务动作”</b>。</p>
+  <table>
+    <tr><th>对象</th><th>有独立 Loop 吗</th><th>谁负责结果</th></tr>
+    <tr><td>Tool</td><td>否</td><td>调用方组合和验收</td></tr>
+    <tr><td>MCP Server</td><td>否</td><td>Server 实现能力；Host 负责选择、授权、集成</td></tr>
+    <tr><td>Skill</td><td>否</td><td>当前 Agent 仍负责 Loop 和结果</td></tr>
+    <tr><td>Subagent</td><td>是</td><td>父 Agent 保留总体责任</td></tr>
+    <tr><td>Remote Agent</td><td>是，独立部署</td><td>远程 Agent 对其承诺负责，委派方负责最终采用</td></tr>
+  </table>
+  <h4>执行环境与 Sandbox 契约</h4>
+  <p>File、Shell、Code Interpreter、Browser、Computer Use 给了模型通用操作空间，也显著扩大了副作用和攻击面。<b>能用窄工具完成的高风险动作，就不要先开放通用 Shell 或 Computer Use。</b></p>
+  <p>Harness 要声明 <b>Environment Contract</b>（需要什么目录、依赖、网络），不能假定“本机一定有”。环境满足不了就在执行前失败或降级，而不是让模型在不确定状态下自己猜。Secret 不能出现在 System Prompt、Tool Schema、任务状态或模型可见的环境变量里，执行侧按行动和身份获取短时凭证。</p>
+  <div class="ex">案例中，Sandbox 允许修改支付服务的代码副本并构建，但<b>不提供生产集群凭证</b>，发布只能通过受控的 <code>production.deploy</code> 工具发起。即使工作区里的恶意文件诱导模型执行部署命令，网络和 Secret 边界也会阻止它绕过审批。</div>
+  <h4>权限：ALLOW / DENY / ASK</h4>
+  <p>权限判定要综合主体、租户、目的、能力、参数、目标资源、环境、阶段、数据敏感度、影响范围、可逆性、预算、历史审批。只按工具名做白名单，无法区分“读一条测试记录”和“导出整个生产库”。</p>
+  <div class="widget" id="w-perm">
+    <div class="wt">你来当策略引擎</div>
+    <p style="margin:0;font-size:14px;color:var(--ink2)">对每个操作，选你认为的默认策略（答案来自书中表格）。</p>
+    <div id="perm-qs"></div>
+  </div>
+  <div class="pit">把 ASK（请人确认）当万能兜底。审批太多，用户会机械点“同意”，Agent 也失去连续性。应优先用更窄的工具、参数约束、预览、资源范围和沙箱降低风险，只在策略确实判断不了时才请人。</div>
+  <p><b>人在回路的三个层次：</b>计划审批、行动审批、结果验收。审批请求要说清：想做什么、为什么、以谁的身份、作用于什么、预计影响、是否可逆、批准范围（仅本次 / 当前任务 / 一类动作）。批准后仍要重新校验对象版本和策略，防止等待期间环境变了。</p>
+  <div class="flow">
+    <div class="s"><b>Preview</b>展示接近实际提交的内容和影响</div><div class="ar">→</div>
+    <div class="s"><b>Approve</b>绑定身份、范围、对象版本</div><div class="ar">→</div>
+    <div class="s"><b>Commit</b>带幂等键执行</div><div class="ar">→</div>
+    <div class="s"><b>Verify</b>查询真实系统状态</div>
+  </div>
+  <p><b><span class="t">Prompt Injection</span> 的关键防线是区分指令和数据。</b>网页、邮件、文档、MCP Server、工具结果、远程 Agent 返回都是不可信输入，不能改变平台政策、授权范围或当前工具集。<span class="t">Guardrail</span> 可以作为额外信号，但不应是唯一边界；能编码的权限和资源限制，用 Policy 和 Sandbox 执行。</p>
+  <h4>交互：事件流与 Channel</h4>
+  <p>长任务不能只在结束时返回一段文字。Harness 应发出经过脱敏的语义事件：文本、进度、工具、状态、审批、产物、错误、用量。用户需要的是任务状态、可见说明、行动、证据、可操作选项，不需要模型的隐藏推理。事件要有序号、能断线续传；状态、审批、产物、终态事件不能因为背压被丢弃。同一任务在不同渠道展示的内容可以不同（开发控制台看详细 Trace，客户只看业务进度）。<span class="t">AG-UI</span> 处理 Agent 与界面的事件交换，<span class="t">A2UI</span> 让 Agent 声明式地描述界面，两者不互相替代。</p>
+  <h4>Trace 与评估：从失败到修复</h4>
+  <table>
+    <tr><th>系统</th><th>职责</th></tr>
+    <tr><td>Agent Harness 里的 <span class="t">Verifier</span></td><td>单次任务的完成门禁</td></tr>
+    <tr><td>Evaluation Harness</td><td>用一致条件运行、回放、比较多个 Agent 版本；必须固定模型、推理设置、工具版本、预算、环境、评分规则</td></tr>
+  </table>
+  <p><b>三层评测对象：</b>单步（工具选对没、参数对不对）、轨迹（有没有绕路、越权、过度消耗）、最终结果（目标是否真正达成）。只评结果会掩盖高成本高风险的过程；只评单步又会惩罚有效探索。</p>
+  <p><b>补丁要和根因对应：</b>缺事实 → 调 Context 或 Knowledge；错误经验反复出现 → 修 Memory；不会稳定方法 → 加 Skill；工具误用 → 改 Tool Schema 或权限；无进展 → 调 Loop、计划或模型；环境不一致 → 修 Environment Contract；完成误判 → 强化 Verifier。<b>只有确认模型能力本身不足时，才优先换模型。</b></p>
+  <div class="ex">线上 Trace 显示：Agent 把用户对“草稿”的同意，误解成了允许发布生产。正确的修复不是在 Prompt 里加一句“请谨慎发布”，而是：拆分 <code>change.create</code> 与 <code>production.deploy</code>；让发布策略校验审批类型、对象版本、目标环境和短时授权；加入“草稿获批不得推导为发布获批”的确定性回归用例；再用原失败样本、正常样本、合法发布样本、注入对抗样本一起验证，确认安全修复没有让所有任务都卡在审批上。</div>
+  <button class="markread" data-ch="6">标记本章已读</button>
+</div></details>
+</section>

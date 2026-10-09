@@ -1,0 +1,126 @@
+<!-- ================= 从这里开始 ================= -->
+<section class="block hero" id="start">
+  <div class="kicker">阿里云《AI Agent HandBook》· 全书内容讲解</div>
+  <h1>这本书只回答一个问题：<br>怎样让 Agent <em>稳定地</em>把活干完？</h1>
+  <p class="sub">大模型已经很聪明，但“聪明”不等于“能交付”。这本书讲的是模型<b>之外</b>的那套工程系统：怎么设计、怎么搭、怎么跑、怎么管、怎么越做越好。全书 30 章，下面按顺序讲清每一章。</p>
+
+  <div class="card">
+    <p style="margin:0 0 4px;color:var(--ink2);font-size:14.5px">全书的地基是一个公式。点一下左右两边，看它们各管什么：</p>
+    <div class="formula">
+      <button class="fbtn" data-f="agent">Agent</button><span class="fop">=</span>
+      <button class="fbtn" data-f="model">Model</button><span class="fop">+</span>
+      <button class="fbtn on" data-f="harness">Harness</button>
+    </div>
+    <div class="out fexplain" id="fexplain"></div>
+  </div>
+
+  <div class="grid3">
+    <div class="mini"><h4>写给谁</h4><p>做 Agent 的开发者、架构师、技术负责人、产品与业务负责人、安全与运维人员。</p></div>
+    <div class="mini"><h4>怎么组织</h4><p>按一个 Agent 的生命周期：<b>架构 → 构建 → 运行 → 治理 → 调优</b>，再加实践案例和展望。</p></div>
+    <div class="mini"><h4>这个网页怎么读</h4><p>先读下面的“12 条原则”和“全书地图”。再按章节展开。每章末尾可以“标记已读”，顶部会显示进度。</p></div>
+  </div>
+</section>
+
+<!-- ================= 12 条原则 ================= -->
+<section class="block" id="principles">
+  <div class="kicker">先抓骨架</div>
+  <h2 class="sec">贯穿全书的 12 条原则</h2>
+  <p class="lead">30 章内容很多，但同样的几句话在不同章节反复出现。先记住这 12 条，后面每一章都是它们在某个具体问题上的展开。</p>
+  <div class="principles">
+    <div class="pr"><b>可靠性不能交给模型本身</b><span>模型负责“想”。准备信息、记住进度、执行操作、检查权限、出错恢复、验证结果，都由模型之外的 Harness 负责。</span><small>第 1、2、3、30 章</small></div>
+    <div class="pr"><b>选“最低充分架构”</b><span>能用 Workflow 解决就不用 Agent；能用单 Agent 就不上多 Agent。只有新增能力解决了真实问题，复杂度才值得。</span><small>第 1、2、11、24 章</small></div>
+    <div class="pr"><b>上下文是草稿纸，状态在外面</b><span>模型窗口里的内容会被压缩、截断、误读。任务的真实进度、审批结果、已执行的操作，必须先写进外部状态。</span><small>第 2、4、5、8 章</small></div>
+    <div class="pr"><b>模型申请完成，Harness 提交完成</b><span>模型说“我做完了”不算数。完成要靠证据：测试报告、文件差异、系统里真实的状态。</span><small>第 4、6、10、11 章</small></div>
+    <div class="pr"><b>“看得见”≠“注册了”≠“有权用”</b><span>模型看到一个工具，不代表它可以调用。每次有影响的操作都要单独判定权限，而且判定点必须是模型绕不过去的地方。</span><small>第 6、9、14、15 章</small></div>
+    <div class="pr"><b>给多大自主权，就配多严的边界和证据</b><span>工具、网络、数据、凭证给得越多，出错时的“爆炸半径”越大。自主程度的上限，由“能撤销多少”和“能证明多少”决定。</span><small>第 2、14、30 章</small></div>
+    <div class="pr"><b>请求成功 ≠ 任务成功 ≠ 业务结果</b><span>HTTP 200、会话结束、模型自述完成，都不等于业务目标达成。业务结果（Outcome）只能由业务方或授权的验收者判定。</span><small>第 9、10、13、16 章</small></div>
+    <div class="pr"><b>超时 ≠ 没执行，Checkpoint ≠ 幂等</b><span>请求超时可能只是回执丢了。重试有副作用的操作前，必须先查清“上一次到底有没有发生”。</span><small>第 4、8、9、10 章</small></div>
+    <div class="pr"><b>消息只是提醒，权威状态才是事实</b><span>轮询、回调、事件通知都可能丢失或重复。收到信号后，要回去读权威的任务状态再做决定。</span><small>第 10、11、12 章</small></div>
+    <div class="pr"><b>外部内容是数据，不是指令</b><span>网页、文档、工具返回、其他 Agent 的消息都是不可信输入。它们不能改变系统规则、授权范围和可用工具。</span><small>第 5、6、9、14 章</small></div>
+    <div class="pr"><b>没有证据，就不许发布</b><span>改 Prompt、Skill、工具、模型或 Harness，都是一次发布，都要有可复现的评估结果，还要经过灰度和回滚准备。</span><small>第 2、15、21、22 章</small></div>
+    <div class="pr"><b>调优不是让 Agent 在生产里自己改自己</b><span>任何自动生成的改进都只是“候选”。它必须回到构建阶段，经过评估、审批、灰度，才能进入生产。</span><small>第 2、9、23、30 章</small></div>
+  </div>
+</section>
+
+<!-- ================= 全书地图 ================= -->
+<section class="block" id="map">
+  <div class="kicker">全局视角</div>
+  <h2 class="sec">全书地图：一个闭环，七个部分</h2>
+  <p class="lead">全书按 Agent 的生命周期组织。它是一个<b>循环</b>，不是一条直线：调优发现的问题要回到构建阶段形成新版本；如果问题出在架构本身（比如权限模型设计错了），就要回到架构设计，而不是不停打补丁。</p>
+  <div class="card map-wrap">
+    <svg class="ring" viewBox="0 0 400 400" id="ring" aria-label="生命周期闭环">
+      <defs><marker id="arw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#b8b2a3"/></marker></defs>
+      <circle cx="200" cy="200" r="140" fill="none" stroke="#e4e1d8" stroke-width="2" stroke-dasharray="4 6"/>
+      <g id="ring-arrows"></g>
+      <g id="ring-nodes"></g>
+      <text x="200" y="192" text-anchor="middle" font-size="15" font-weight="700" fill="#1d1f24">Agent 生命周期</text>
+      <text x="200" y="214" text-anchor="middle" font-size="12" fill="#7b818c">点击任一阶段</text>
+    </svg>
+    <div id="map-out"></div>
+  </div>
+</section>
+
+<!-- ================= 术语表 ================= -->
+<section class="block" id="glossary">
+  <div class="kicker">查词</div>
+  <h2 class="sec">术语表</h2>
+  <p class="lead">书里英文术语很多。正文中带虚线下划线的词，鼠标停上去（手机上点一下）就能看到解释。也可以在这里搜索。</p>
+  <input class="gloss-search" id="gq" placeholder="搜索术语，例如：Harness、幂等、Checkpoint、MCP……">
+  <div class="gloss" id="gloss"></div>
+</section>
+
+<!-- ================= 调研 ================= -->
+<section class="block" id="survey">
+  <div class="kicker">2026 Agent 开发者调研报告</div>
+  <h2 class="sec">现状：能做出来，但还跑不稳</h2>
+  <p class="lead">这份调研解释了作者为什么写这本书：大家已经在做 Agent，但能上生产、能量化效果的很少。瓶颈不在“能不能做”，而在“能不能稳定、便宜、可验证地运行”。</p>
+  <div class="grid2">
+    <div class="card bars">
+      <h4 style="margin-bottom:6px">投入与生产化</h4>
+      <div class="row"><span>已开发完成或开发中</span><div class="track"><div class="fill" data-w="46"></div></div><span class="v">46%</span></div>
+      <div class="row"><span>真正部署到生产</span><div class="track"><div class="fill" data-w="18"></div></div><span class="v">18%</span></div>
+      <div class="row"><span>暂无开发计划（去年 22%）</span><div class="track"><div class="fill b" data-w="15"></div></div><span class="v">15%</span></div>
+      <h4 style="margin:16px 0 6px">架构选择（长期共存，不是替代）</h4>
+      <div class="row"><span>以单 Agent 为主</span><div class="track"><div class="fill b" data-w="40"></div></div><span class="v">40%</span></div>
+      <div class="row"><span>开始引入多 Agent 为主</span><div class="track"><div class="fill b" data-w="42"></div></div><span class="v">42%</span></div>
+      <div class="row"><span>以人在回路为主要架构</span><div class="track"><div class="fill b" data-w="15"></div></div><span class="v">15%</span></div>
+    </div>
+    <div class="card bars">
+      <h4 style="margin-bottom:6px">难点与需求</h4>
+      <div class="row"><span>对上下文与记忆管理有明确需求</span><div class="track"><div class="fill g" data-w="90"></div></div><span class="v">90%</span></div>
+      <div class="row"><span>最需要多模型路由与成本治理</span><div class="track"><div class="fill g" data-w="63"></div></div><span class="v">63%</span></div>
+      <div class="row"><span>判断好坏仍靠人工抽查</span><div class="track"><div class="fill" data-w="55"></div></div><span class="v">55%</span></div>
+      <div class="row"><span>能基于轨迹自动评估</span><div class="track"><div class="fill" data-w="8"></div></div><span class="v">&lt;8%</span></div>
+      <h4 style="margin:16px 0 6px">任务成功率</h4>
+      <div class="row"><span>成功率 90% 以上</span><div class="track"><div class="fill" data-w="10"></div></div><span class="v">约1成</span></div>
+      <div class="row"><span>成功率 70% 以上</span><div class="track"><div class="fill" data-w="55"></div></div><span class="v">约55%</span></div>
+      <div class="row"><span>从没量化过成功率</span><div class="track"><div class="fill" data-w="16"></div></div><span class="v">16%</span></div>
+    </div>
+  </div>
+  <div class="key">现在的瓶颈不是“能不能做出 Agent”，而是“能不能稳定、便宜、可验证地运行”。还有一点：编码 Agent 最先规模化，采购 Claude Code、Codex、Cursor、Qoder 等编码工具的企业占 57%，使用通用 Agent 框架的占 78%，供应商分散。所以<b>可迁移的工程抽象比押注某个厂商更有价值</b>。</div>
+  <p class="src">数据来源：仓库内《2026 Agent 开发者调研报告》（2026-agent-survey-report.md），百分比为报告原文数字。</p>
+</section>
+
+<!-- ================= 前言 ================= -->
+<section class="block" id="preface">
+  <div class="kicker">前言</div>
+  <h2 class="sec">智以致用：从造出智能，到用好智能</h2>
+  <div class="card">
+    <p><b>核心判断：</b>“思考”正在变成一种价格不断下降、供给不断扩大的商品。就像工业革命让“力气”变得便宜，AI 正在让“认知”变得便宜。但便宜的思考不会自动变成有价值的结果。</p>
+    <p><b>“智以致用”三个字：</b>“智”是可以批量生产的认知能力；“用”是能可靠交付的任务结果；中间的“以”，就是这本书要讨论的工程方法。</p>
+    <div class="flow">
+      <div class="s"><b>能回答问题</b>Chatbot、Copilot<br>人判断，模型建议</div><div class="ar">→</div>
+      <div class="s"><b>能完成任务</b>Agent 承担一个环节或岗位<br>人在关键处授权、审阅、兜底</div><div class="ar">→</div>
+      <div class="s"><b>能稳定完成任务</b>能保持状态、调对工具、从失败中恢复，<br>行为可观察、可评估、可审计</div>
+    </div>
+    <p><b>两条主线：</b>“全模态”是 AI 理解世界的界面（文字之外还有图像、声音、视频、代码、结构化数据）；“全栈”是智能规模化供给的经济基础（模型、芯片、网络、存储、推理、运行时、安全，任何一层的瓶颈都会被海量 Token 放大）。</p>
+    <p><b>工程中心的转移：</b>模型仍然是智能的源头，但不再单独构成架构中心。真正的工程中心转向 <span class="t">Harness</span> 工程：运行时与沙箱、AI 网关、工具与协议、记忆与技能资产、可观测与评估、持续学习。也就是从 “AI Native”（被 AI 增强的应用）走向 “Agent Native”（由 Agent 围绕目标动态组织起来的应用）。</p>
+    <p><b>AI 能写书了，为什么还要写这本？</b>因为有四样东西 AI 给不了：</p>
+    <div class="grid2">
+      <div class="mini"><h4>自洽的概念</h4><p>Harness、Runtime、Agent、Workflow 这些词，不同人讲的不是一件事。书要建立一套统一的语言，让团队在同一个上下文里讨论。</p></div>
+      <div class="mini"><h4>判断</h4><p>模型给的往往是“看起来合理的平均值”。取舍需要作者自己判断。</p></div>
+      <div class="mini"><h4>一线经验</h4><p>真实生产环境里发生过什么、哪里反复出问题，来自工程师的实践，不在公开语料里。</p></div>
+      <div class="mini"><h4>教训</h4><p>“什么不该做”比“什么可以做”更稀缺。真实的失败模式来自生产，不是模型续写出来的。</p></div>
+    </div>
+  </div>
+</section>

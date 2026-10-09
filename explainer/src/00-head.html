@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>讲透《AI Agent HandBook》· 全书内容图解</title>
+<style>
+:root{
+  --bg:#f7f6f2; --paper:#ffffff; --ink:#1d1f24; --ink2:#4a4f59; --ink3:#7b818c;
+  --line:#e4e1d8; --accent:#c2410c; --accent-soft:#fff1e8;
+  --blue:#1d4ed8; --blue-soft:#eaf0ff; --green:#15803d; --green-soft:#e9f7ee;
+  --red:#b91c1c; --red-soft:#fdecec; --amber:#a16207; --amber-soft:#fdf6e3;
+  --violet:#6d28d9; --violet-soft:#f1ebff;
+  --radius:12px; --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.05);
+  --font:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",system-ui,sans-serif;
+  --mono:"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.8;-webkit-font-smoothing:antialiased}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:.88em;background:#f0eee8;padding:1px 6px;border-radius:5px}
+h1,h2,h3,h4{line-height:1.35;margin:0}
+p{margin:.6em 0}
+ul,ol{padding-left:1.4em;margin:.5em 0}
+li{margin:.25em 0}
+table{border-collapse:collapse;width:100%;font-size:14.5px;margin:.8em 0;background:var(--paper)}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:#f3f1ea;font-weight:600}
+
+/* ---------- 顶栏 ---------- */
+.topbar{position:sticky;top:0;z-index:50;background:rgba(247,246,242,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.topbar-in{max-width:1280px;margin:0 auto;display:flex;align-items:center;gap:16px;padding:10px 20px}
+.brand{font-weight:700;letter-spacing:.5px;white-space:nowrap}
+.brand span{color:var(--accent)}
+.topnav{display:flex;gap:4px;flex-wrap:wrap;flex:1}
+.topnav a{color:var(--ink2);font-size:14px;padding:4px 10px;border-radius:999px}
+.topnav a:hover{background:#ece9e0;text-decoration:none}
+.progress{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink3);white-space:nowrap}
+.progress .bar{width:110px;height:6px;background:#e6e2d7;border-radius:3px;overflow:hidden}
+.progress .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .4s}
+
+/* ---------- 布局 ---------- */
+.layout{max-width:1280px;margin:0 auto;display:grid;grid-template-columns:250px 1fr;gap:32px;padding:24px 20px 80px}
+.toc{position:sticky;top:72px;align-self:start;max-height:calc(100vh - 90px);overflow:auto;font-size:13.5px;padding-right:6px}
+.toc h4{font-size:12px;color:var(--ink3);letter-spacing:1px;margin:16px 0 6px}
+.toc a{display:flex;gap:6px;color:var(--ink2);padding:3px 8px;border-radius:6px;line-height:1.5}
+.toc a:hover{background:#ece9e0;text-decoration:none}
+.toc a.active{background:var(--accent-soft);color:var(--accent)}
+.toc a .ck{margin-left:auto;color:var(--green);visibility:hidden}
+.toc a.read .ck{visibility:visible}
+main{min-width:0}
+@media (max-width:960px){.layout{grid-template-columns:1fr}.toc{display:none}.topnav{display:none}}
+
+/* ---------- 区块 ---------- */
+section.block{margin:0 0 56px}
+.kicker{font-size:13px;letter-spacing:2px;color:var(--accent);font-weight:600}
+h2.sec{font-size:30px;margin:6px 0 10px}
+.lead{font-size:17px;color:var(--ink2);max-width:820px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px;margin:14px 0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.mini{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.mini h4{font-size:15.5px;margin-bottom:4px}
+.mini p{font-size:14.5px;color:var(--ink2);margin:.3em 0}
+.tag{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;background:#efece4;color:var(--ink2);margin-right:4px}
+
+/* ---------- Hero ---------- */
+.hero{padding:30px 0 10px}
+.hero h1{font-size:40px;letter-spacing:.5px}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.hero .sub{font-size:18px;color:var(--ink2);max-width:860px;margin-top:12px}
+.formula{display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;margin:26px 0 8px;font-size:30px;font-weight:700}
+.fbtn{border:2px solid var(--line);background:var(--paper);border-radius:14px;padding:10px 26px;font:inherit;cursor:pointer;transition:all .2s}
+.fbtn:hover{border-color:var(--ink3)}
+.fbtn.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.fop{color:var(--ink3)}
+.fexplain{min-height:120px}
+
+/* ---------- 原则卡 ---------- */
+.principles{counter-reset:p;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px}
+.pr{background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:14px 16px 12px 52px;position:relative}
+.pr::before{counter-increment:p;content:counter(p);position:absolute;left:14px;top:14px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-size:13px;font-weight:700;display:grid;place-items:center}
+.pr b{display:block;font-size:15.5px}
+.pr span{font-size:14px;color:var(--ink2)}
+.pr small{display:block;color:var(--ink3);font-size:12.5px;margin-top:4px}
+
+/* ---------- 篇与章 ---------- */
+.part-head{display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:8px}
+.part-head .pn{font-size:14px;background:var(--ink);color:#fff;padding:3px 10px;border-radius:6px}
+.part-head h2{font-size:28px}
+.part-head .q{color:var(--ink2);font-size:15px;flex-basis:100%}
+details.ch{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);margin:12px 0;box-shadow:var(--shadow)}
+details.ch>summary{list-style:none;cursor:pointer;padding:16px 20px;display:grid;grid-template-columns:auto 1fr auto;gap:4px 14px;align-items:center}
+details.ch>summary::-webkit-details-marker{display:none}
+details.ch>summary .no{font-size:13px;color:var(--accent);font-weight:700;white-space:nowrap}
+details.ch>summary .tt{font-size:18px;font-weight:700}
+details.ch>summary .one{grid-column:2/3;font-size:14.5px;color:var(--ink2)}
+details.ch>summary .arrow{grid-row:1/3;grid-column:3;color:var(--ink3);transition:transform .2s;font-size:18px}
+details.ch[open]>summary .arrow{transform:rotate(90deg)}
+details.ch[open]>summary{border-bottom:1px solid var(--line)}
+.chb{padding:6px 24px 22px}
+.chb h4{font-size:16px;margin:20px 0 6px;display:flex;align-items:center;gap:8px}
+.chb h4::before{content:"";width:4px;height:16px;background:var(--accent);border-radius:2px}
+.tldr{background:var(--accent-soft);border-radius:10px;padding:12px 16px;margin:14px 0 6px;font-size:15.5px}
+.tldr b{color:var(--accent)}
+.pit{background:var(--red-soft);border-radius:10px;padding:10px 14px;margin:10px 0;font-size:14.5px}
+.pit::before{content:"⚠ 常见误区";display:block;font-weight:700;color:var(--red);font-size:13px;margin-bottom:2px}
+.ex{background:var(--blue-soft);border-radius:10px;padding:10px 14px;margin:10px 0;font-size:14.5px}
+.ex::before{content:"例子";display:block;font-weight:700;color:var(--blue);font-size:13px;margin-bottom:2px}
+.key{background:var(--green-soft);border-radius:10px;padding:10px 14px;margin:10px 0;font-size:14.5px}
+.key::before{content:"✓ 记住这一句";display:block;font-weight:700;color:var(--green);font-size:13px;margin-bottom:2px}
+.src{font-size:12.5px;color:var(--ink3);margin-top:14px}
+.markread{margin-top:14px;font:inherit;font-size:13px;border:1px solid var(--line);background:#faf9f6;border-radius:8px;padding:4px 12px;cursor:pointer;color:var(--ink2)}
+.markread.done{background:var(--green-soft);color:var(--green);border-color:#bfe3cb}
+
+/* ---------- 流程条 ---------- */
+.flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:6px;margin:10px 0}
+.flow .s{flex:1 1 110px;background:#f6f4ee;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13.5px;text-align:center}
+.flow .s b{display:block;font-size:14.5px}
+.flow .ar{align-self:center;color:var(--ink3)}
+
+/* ---------- 交互组件通用 ---------- */
+.widget{background:#fffdf8;border:1.5px dashed #e3c9b5;border-radius:var(--radius);padding:16px 18px;margin:16px 0}
+.widget .wt{font-weight:700;font-size:15px;color:var(--accent);margin-bottom:6px}
+.widget .wt::before{content:"▶ 动手试一试 · "}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.btn{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:6px 14px;cursor:pointer;transition:all .15s;color:var(--ink)}
+.btn:hover{border-color:var(--ink3)}
+.btn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.good{background:var(--green-soft);border-color:#9fd3b1;color:var(--green)}
+.btn.bad{background:var(--red-soft);border-color:#f0b4b4;color:var(--red)}
+.out{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:10px;font-size:14.5px;min-height:48px}
+.q-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 0;border-bottom:1px dashed var(--line)}
+.q-row:last-child{border-bottom:0}
+.q-row .qt{flex:1 1 280px;font-size:14.5px}
+.fb{font-size:13.5px;flex-basis:100%;color:var(--ink2);display:none}
+.fb.show{display:block}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.stat{display:flex;gap:18px;flex-wrap:wrap}
+.stat div{flex:1 1 150px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.stat b{display:block;font-size:24px}
+.stat span{font-size:13px;color:var(--ink3)}
+
+/* ---------- 地图 ---------- */
+.map-wrap{display:grid;grid-template-columns:minmax(280px,420px) 1fr;gap:20px;align-items:center}
+@media (max-width:760px){.map-wrap{grid-template-columns:1fr}}
+.ring .node{cursor:pointer}
+.ring .node circle{transition:all .2s}
+.ring .node:hover circle,.ring .node.on circle{stroke-width:4}
+.ring text{font-family:var(--font);pointer-events:none}
+
+/* ---------- 调研条形图 ---------- */
+.bars .row{display:grid;grid-template-columns:230px 1fr 52px;gap:10px;align-items:center;font-size:14px;margin:7px 0}
+.bars .track{background:#ece9e0;height:16px;border-radius:4px;overflow:hidden}
+.bars .fill{height:100%;background:var(--accent);border-radius:4px;width:0;transition:width 1s ease}
+.bars .fill.b{background:var(--blue)}
+.bars .fill.g{background:var(--green)}
+.bars .v{font-weight:700;text-align:right}
+@media (max-width:600px){.bars .row{grid-template-columns:1fr 60px}.bars .track{grid-column:1/3;grid-row:2}}
+
+/* ---------- 术语 ---------- */
+.t{border-bottom:1px dotted var(--ink3);cursor:help}
+#tip{position:fixed;z-index:100;max-width:340px;background:var(--ink);color:#fff;font-size:13.5px;line-height:1.6;padding:10px 12px;border-radius:8px;pointer-events:none;opacity:0;transition:opacity .15s;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+#tip b{color:#ffb98f}
+.gloss-search{width:100%;font:inherit;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:var(--paper);margin:8px 0 12px}
+.gloss{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px;max-height:520px;overflow:auto;padding:2px}
+.gl{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:14px}
+.gl b{display:block;font-size:14.5px}
+.gl span{color:var(--ink2)}
+.gl i{font-style:normal;font-size:12px;color:var(--ink3)}
+
+/* ---------- 状态机 ---------- */
+.sm{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.sm .st{font-family:var(--mono);font-size:12.5px;padding:4px 9px;border-radius:6px;border:1px solid var(--line);background:#f6f4ee;cursor:pointer}
+.sm .st.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.loop{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.loop .ph{flex:1 1 100px;text-align:center;padding:10px 6px;border-radius:10px;border:2px solid var(--line);background:var(--paper);font-weight:700;font-size:14px;transition:all .25s}
+.loop .ph small{display:block;font-weight:400;font-size:12px;color:var(--ink3)}
+.loop .ph.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);transform:translateY(-3px)}
+
+/* ---------- 阶梯 ---------- */
+.ladder{display:flex;flex-direction:column-reverse;gap:6px}
+.rung{display:grid;grid-template-columns:70px 1fr;gap:10px;align-items:center;cursor:pointer;border:1px solid var(--line);background:var(--paper);border-radius:10px;padding:8px 12px;transition:all .2s}
+.rung:hover,.rung.on{border-color:var(--accent);background:var(--accent-soft)}
+.rung b{font-family:var(--mono);color:var(--accent)}
+
+.foot{text-align:center;color:var(--ink3);font-size:13px;padding:30px 0}
+</style>
+</head>
+<body>
+<div id="tip"></div>
+<header class="topbar"><div class="topbar-in">
+  <div class="brand">讲透 <span>AI Agent HandBook</span></div>
+  <nav class="topnav">
+    <a href="#start">从这里开始</a><a href="#principles">12 条原则</a><a href="#map">全书地图</a>
+    <a href="#p1">架构</a><a href="#p2">构建</a><a href="#p3">运行</a><a href="#p4">治理</a><a href="#p5">调优</a><a href="#p6">实践</a><a href="#p7">展望</a><a href="#quiz">自测</a>
+  </nav>
+  <div class="progress" title="点击每章末尾的“标记已读”记录进度">已读 <div class="bar"><i id="pbar"></i></div> <span id="ptext">0/30</span></div>
+</div></header>
+
+<div class="layout">
+<aside class="toc" id="toc">
+  <h4>导读</h4>
+  <a href="#start">从这里开始</a>
+  <a href="#principles">贯穿全书的 12 条原则</a>
+  <a href="#map">全书地图</a>
+  <a href="#glossary">术语表</a>
+  <a href="#survey">调研报告：现状数据</a>
+  <a href="#preface">前言：为什么写这本书</a>
+  <h4>架构篇</h4>
+  <a href="#ch1">1 · AI 原生应用的新阶段<span class="ck">✓</span></a>
+  <a href="#ch2">2 · 参考架构<span class="ck">✓</span></a>
+  <h4>构建篇</h4>
+  <a href="#ch3">3 · Harness 的构建方式<span class="ck">✓</span></a>
+  <a href="#ch4">4 · 任务：编排与推进<span class="ck">✓</span></a>
+  <a href="#ch5">5 · 信息：上下文与状态<span class="ck">✓</span></a>
+  <a href="#ch6">6 · 行动：受控执行<span class="ck">✓</span></a>
+  <h4>运行篇</h4>
+  <a href="#ch7">7 · 运行时与沙箱<span class="ck">✓</span></a>
+  <a href="#ch8">8 · 状态存储与语义资产<span class="ck">✓</span></a>
+  <a href="#ch9">9 · AI 网关<span class="ck">✓</span></a>
+  <a href="#ch10">10 · 异步任务与自动化<span class="ck">✓</span></a>
+  <a href="#ch11">11 · Multi-Agent 协作<span class="ck">✓</span></a>
+  <a href="#ch12">12 · 分布式通信<span class="ck">✓</span></a>
+  <h4>治理篇</h4>
+  <a href="#ch13">13 · 可观测性<span class="ck">✓</span></a>
+  <a href="#ch14">14 · 安全<span class="ck">✓</span></a>
+  <a href="#ch15">15 · AI 资产管理<span class="ck">✓</span></a>
+  <a href="#ch16">16 · 仿真与质量验证<span class="ck">✓</span></a>
+  <h4>调优篇</h4>
+  <a href="#ch17">17 · 模型调优<span class="ck">✓</span></a>
+  <a href="#ch18">18 · 调优总览：数据飞轮<span class="ck">✓</span></a>
+  <a href="#ch19">19 · 轨迹数据<span class="ck">✓</span></a>
+  <a href="#ch20">20 · 运行时数据处理<span class="ck">✓</span></a>
+  <a href="#ch21">21 · 黄金数据集<span class="ck">✓</span></a>
+  <a href="#ch22">22 · Badcase 优化<span class="ck">✓</span></a>
+  <a href="#ch23">23 · 受控自进化<span class="ck">✓</span></a>
+  <a href="#ch24">24 · 边缘与全球优化<span class="ck">✓</span></a>
+  <h4>实践篇</h4>
+  <a href="#ch25">25 · 研发效能<span class="ck">✓</span></a>
+  <a href="#ch26">26 · 设计工程<span class="ck">✓</span></a>
+  <a href="#ch27">27 · 运维与企业 IT<span class="ck">✓</span></a>
+  <a href="#ch28">28 · 客户、销售与运营<span class="ck">✓</span></a>
+  <a href="#ch29">29 · GOAI 赛道作品<span class="ck">✓</span></a>
+  <h4>展望篇</h4>
+  <a href="#ch30">30 · Agentic OS<span class="ck">✓</span></a>
+  <h4>收尾</h4>
+  <a href="#quiz">自测题</a>
+</aside>
+
+<main>
